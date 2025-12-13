@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:marsa_app/components/image.dart';
+import 'package:marsa_app/screens/RegistrationScreen.dart';
+import 'package:marsa_app/screens/homeScreen.dart';
 import 'package:marsa_app/screens/loginScreen.dart';
 import 'package:marsa_app/utils/config.dart';
 import 'package:marsa_app/utils/main_layout.dart';
+
 import 'package:get/get.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
 
-  // this is for push navigator
+class _MyAppState extends State<MyApp> {
+  int currentPage = 0;
+  final PageController _page = PageController();
   static final navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -32,8 +42,9 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: Colors.white,
         bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Config.primaryColor,
+          backgroundColor: Colors.transparent,
           selectedItemColor: Colors.white,
+          selectedIconTheme: IconThemeData(size: 30),
           showSelectedLabels: true,
           showUnselectedLabels: false,
           unselectedItemColor: Colors.grey.shade700,
@@ -43,21 +54,11 @@ class MyApp extends StatelessWidget {
       ),
 
       initialRoute: '/',
-      routes: {
-        // this is initial route of the app
-        // which is auth page (login and sign up)
-        // '/': (context) => const AuthPage(),
-
-        // this is for main layout after login
-
-        //  اﻷساسي بعد انشاء صفحة تسجيل الدخول
-        // 'main': (context) => const MainLayout(),
-
-        // مؤقت لحين أنشاء صفحة تسجيل الدخول
-        'main': (context) => MainLayout(),
-        // 'login': (context) => const LoginScreen(),
-        '/': (context) => const LoginScreen(),
-      },
+      getPages: [
+        GetPage(name: '/', page: () => MainLayout()),
+        GetPage(name: '/login', page: () => LoginScreen()),
+        GetPage(name: '/Register', page: () => RegistrationPage()),
+      ],
     );
   }
 }

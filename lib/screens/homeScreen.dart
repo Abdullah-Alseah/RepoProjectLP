@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:marsa_app/components/card.dart';
 import 'package:marsa_app/utils/config.dart';
-import 'package:marsa_app/components/apartment_card.dart';
 
 class HomeSecreen extends StatefulWidget {
   const HomeSecreen({super.key});
@@ -22,54 +20,51 @@ class _HomeSecreenState extends State<HomeSecreen> {
         slivers: [
           SliverAppBar(
             backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-            leading: Image.asset('assets/marsa/Logo.png'),
+            actions: [
+              Container(
+                padding: EdgeInsetsGeometry.all(10),
+                child: Image.asset('assets/marsa/logo Marsa.png'),
+              ),
+            ],
             expandedHeight: 200,
             floating: false,
             // للتثبيت الاب بار عند السحب
             // pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
-              background:
-              // Image.asset(
-              //   'assets/background/1.jpg',
-              //   fit: BoxFit.cover,
-              // ),
-              Container(
+              background: Container(
                 height: 200,
                 decoration: BoxDecoration(
                   image: const DecorationImage(
-                    image: AssetImage(
-                      'assets/background/1.jpg',
-                    ),
+                    image: AssetImage('assets/background/1.jpg'),
                     fit: BoxFit.cover,
                   ),
                 ),
                 child: Stack(
                   children: [
-                  // تدرج خفيف أسفل الكارت
-                  Positioned(
-                    bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: 90,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.white, Colors.white.withAlpha(0)],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
+                    // تدرج خفيف أسفل الكارت
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: 90,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.white, Colors.white.withAlpha(0)],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white,
+                              blurRadius: 30,
+                              offset: const Offset(0, 25),
+                            ),
+                          ],
+                        ),
                       ),
-                      boxShadow: [
-                    BoxShadow(
-                    color: Colors.white,
-                    blurRadius: 30,
-                    offset: const Offset(0, 25),
-                  ),
-                    ],
-
                     ),
-                  ),
-                ),
                   ],
                 ),
               ),
@@ -77,19 +72,20 @@ class _HomeSecreenState extends State<HomeSecreen> {
                 'مَرسَى',
                 style: TextStyle(
                   color: Config.secandryColor,
-                  fontFamily: "tajawal",
+                  fontFamily: Config.mainFont,
                   // color: Colors.white,
                   fontWeight: FontWeight.bold,
-
                 ),
               ),
             ),
           ),
 
           SliverAppBar(
-            backgroundColor: Colors.white,
+            automaticallyImplyLeading: false,
+            backgroundColor: const Color.fromARGB(255, 255, 255, 255),
             expandedHeight: 110,
             toolbarHeight: 110,
+            floating: false,
             // للتثبيت الاب بار عند السحب
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
@@ -135,7 +131,9 @@ class _HomeSecreenState extends State<HomeSecreen> {
                                     boxShadow: [
                                       BoxShadow(
                                         color: _isBuySelected
-                                            ? Config.primaryColor.withOpacity(0.5)
+                                            ? Config.primaryColor.withOpacity(
+                                                0.5,
+                                              )
                                             : Colors.transparent,
                                         blurRadius: 7,
                                         offset: const Offset(0, 3),
@@ -151,7 +149,7 @@ class _HomeSecreenState extends State<HomeSecreen> {
                                           : Colors.grey[600],
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      fontFamily: "Tajawal",
+                                      fontFamily: Config.mainFont,
                                     ),
                                   ),
                                 ),
@@ -173,7 +171,9 @@ class _HomeSecreenState extends State<HomeSecreen> {
                                     boxShadow: [
                                       BoxShadow(
                                         color: !_isBuySelected
-                                            ? Config.primaryColor.withOpacity(0.5)
+                                            ? Config.primaryColor.withOpacity(
+                                                0.5,
+                                              )
                                             : Colors.transparent,
                                         blurRadius: 7,
                                         offset: const Offset(0, 3),
@@ -189,7 +189,7 @@ class _HomeSecreenState extends State<HomeSecreen> {
                                           : Colors.grey[600],
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
-                                      fontFamily: "Tajawal"
+                                      fontFamily: Config.mainFont,
                                     ),
                                   ),
                                 ),
@@ -198,8 +198,6 @@ class _HomeSecreenState extends State<HomeSecreen> {
                           ],
                         ),
                       ),
-
-
                     ],
                   ),
                 ),
@@ -208,6 +206,7 @@ class _HomeSecreenState extends State<HomeSecreen> {
           ),
 
           SliverAppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: Colors.white,
             expandedHeight: 110,
             toolbarHeight: 110,
@@ -220,39 +219,27 @@ class _HomeSecreenState extends State<HomeSecreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 15),
                         decoration: BoxDecoration(
                           color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(15),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
                         child: TextField(
-                          // قمنا بإزالة const من هنا
-                          // 1. محاذاة النص لليمين
                           textAlign: TextAlign.right,
-                          // 2. اتجاه النص من اليمين لليسار
-                          textDirection: TextDirection.rtl,
 
+                          textDirection: TextDirection.rtl,
+                          style: TextStyle(fontFamily: Config.mainFont),
                           decoration: InputDecoration(
                             hintText: "...ابحث عن موقع، مدينة",
-                            // لضمان أن الـ hint يظهر في اليمين أيضاً
                             hintTextDirection: TextDirection.rtl,
                             border: InputBorder.none,
-
-                            // ملاحظة: إذا أردت الأيقونة في الجهة اليسرى (نهاية النص العربي)
-                            // استخدم suffixIcon بدلاً من icon
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                Icons.search,
-                                color: Colors.grey,
-                              ),
+                              icon: Icon(Icons.search, color: Colors.grey),
                               onPressed: () {
                                 // وظيفة البحث
                               },
                             ),
-                            // أو أبقها icon كما هي إذا أردتها خارج الحقل
                           ),
                         ),
                       ),

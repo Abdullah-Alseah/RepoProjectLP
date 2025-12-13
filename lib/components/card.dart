@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:get/get.dart';
 import 'package:marsa_app/utils/config.dart';
 
 class ApartmentCardWidget extends StatefulWidget {
@@ -11,6 +12,7 @@ class ApartmentCardWidget extends StatefulWidget {
 
 class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
   bool isFav = false;
+  String? _price = "1,250,000 ريال";
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +59,6 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
       ),
       child: Stack(
         children: [
-          // الصورة نفسها (يجب أن يكون المسار معرفاً في pubspec.yaml)
-          // تم استخدام Container بدلاً من Image.asset لتجنب الحاجة لملف asset حقيقي في هذا المثال
           Container(
             height: 250,
             width: double.infinity,
@@ -70,33 +70,31 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
               'assets/apartmentsImages/1.jpg',
               height: 250,
               width: double.infinity,
-              fit: BoxFit.cover
+              fit: BoxFit.cover,
             ),
           ),
 
-          // زر المفضلة (Heart Icon) - يمين أعلى
           Positioned(
             top: 15,
             left: 15,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      isFav = !isFav;
-                    });
-                  },
-                  icon: FaIcon(
-                    isFav ? Icons.favorite_outlined : Icons.favorite_border,
-                    color: isFav ? Colors.red : Colors.grey,
-                  ),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: IconButton(
+                onPressed: () {
+                  setState(() {
+                    isFav = !isFav;
+                  });
+                },
+                icon: FaIcon(
+                  isFav ? Icons.favorite_outlined : Icons.favorite_border,
+                  color: isFav ? Colors.red : Colors.grey,
                 ),
               ),
             ),
-
+          ),
 
           // شارة "مميز" - يسار أعلى
           Positioned(
@@ -114,6 +112,7 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
+                  fontFamily: Config.mainFont,
                 ),
               ),
             ),
@@ -135,9 +134,9 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
             'شقة فاخرة في وسط المدينة',
             style: TextStyle(
               fontSize: 22,
-              fontFamily: "Tajawal",
               fontWeight: FontWeight.w900,
               color: Config.primaryColor,
+              fontFamily: Config.mainFont,
             ),
           ),
           const SizedBox(height: 5),
@@ -145,13 +144,17 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
           // الموقع
           Row(
             children: [
-              const Icon(Icons.location_on_outlined, color: Colors.grey, size: 18),
+              const Icon(
+                Icons.location_on_outlined,
+                color: Colors.grey,
+                size: 18,
+              ),
               const SizedBox(width: 5),
               Text(
                 'الرياض، حي العليا',
                 style: TextStyle(
                   fontSize: 16,
-                  fontFamily: "Tajawal",
+                  fontFamily: Config.mainFont,
                   color: Colors.grey.shade600,
                 ),
               ),
@@ -188,9 +191,10 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
               fontSize: 16,
               color: Config.primaryColor,
               fontWeight: FontWeight.w600,
+              fontFamily: Config.mainFont,
             ),
           ),
-          SizedBox(width: 10,)
+          SizedBox(width: 10),
         ],
       );
     }
@@ -207,23 +211,23 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
     );
   }
 
-  // --- صف السعر وزر الإجراء ---
+  // Go Button And Price
   Widget _buildPriceAndActionButton() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // السعر
-        const Text(
-          '1,250,000 ريال',
+        // Price
+        Text(
+          _price!,
           style: TextStyle(
             fontSize: 24,
-            fontFamily: "Tajawal",
+            fontFamily: Config.mainFont,
             fontWeight: FontWeight.w900,
             color: Config.primaryColor,
           ),
         ),
 
-        // زر الإجراء (السهم الأخضر)
+        // Go Button
         Container(
           width: 50,
           height: 50,
@@ -235,26 +239,13 @@ class _ApartmentCardWidgetState extends State<ApartmentCardWidget> {
             onPressed: () {
               setState(() {
                 //    Press To Change
+                Get.toNamed("/login");
               });
             },
-            icon: FaIcon(
-              Icons.arrow_forward_ios,
-              color: Colors.white,
-            ),
+            icon: FaIcon(Icons.arrow_forward_ios, color: Colors.white),
           ),
         ),
       ],
     );
   }
 }
-
-// مثال الاستخدام في تطبيقك
-/*
-void main() {
-  runApp(const MaterialApp(
-    home: Scaffold(
-      body: ApartmentCardWidget(),
-    ),
-  ));
-}
-*/
