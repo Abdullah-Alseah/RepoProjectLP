@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
+import 'package:marsa_app/screens/privacy.dart';
 import 'package:marsa_app/screens/terms.dart';
 import 'package:marsa_app/screens/verificationScreen.dart';
 import 'package:marsa_app/utils/config.dart';
@@ -402,7 +403,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               style: TextStyle(fontFamily: Config.mainFont),
                             ),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () {
+                                Get.to(PrivacyPage());
+                              },
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: Text(

@@ -4,6 +4,7 @@ import 'package:marsa_app/screens/loginScreen.dart';
 import 'package:marsa_app/screens/RegistrationScreen.dart';
 import 'glassContainer.dart';
 import 'package:marsa_app/screens/terms.dart';
+import 'package:marsa_app/screens/privacy.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -32,7 +33,7 @@ class _MainLayoutState extends State<MainLayout> {
             children: <Widget>[
               HomeSecreen(),
               LoginScreen(),
-              TermsPage(),
+              PrivacyPage(),
               RegistrationPage(),
             ],
           ),
