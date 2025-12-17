@@ -31,7 +31,7 @@ class Config {
   );
 
   static const focusBorder = OutlineInputBorder(
-    borderRadius: BorderRadius.all(Radius.circular(8)),
+    borderRadius: BorderRadius.all(Radius.circular(50)),
     borderSide: BorderSide(color: primaryColor),
   );
 

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:marsa_app/controllers/auth_controller.dart';
 import 'package:marsa_app/screens/RegistrationScreen.dart';
-import 'package:marsa_app/screens/homeScreen.dart';
+import 'package:marsa_app/screens/verificationScreen.dart';
 import 'package:marsa_app/utils/config.dart';
 import 'package:get/get.dart';
-import 'package:marsa_app/utils/main_layout.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,15 +13,53 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isPasswordVisible = false;
+  final _isPasswordVisible = false.obs;
   final _formKey = GlobalKey<FormState>();
-  final _passConroller = TextEditingController();
-  final _numberController = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
+  final _isLoading = false.obs;
+  final AuthController authController = Get.put(AuthController());
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      _isLoading.value = true;
+
+      try {
+        final success = await authController.login(
+          name: 'مستخدم',
+          email: emailController.text,
+          password: passwordController.text,
+        );
+
+        _isLoading.value = false;
+
+        if (success) {
+          Get.to(OTPForm());
+        }
+      } catch (e) {
+        _isLoading.value = false;
+        Get.snackbar(
+          'خطأ',
+          'حدث خطأ أثناء تسجيل الدخول',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     Config.init(context);
-    return 
-    Scaffold(
+    return Scaffold(
       body: Stack(
         children: [
           // 1. Background Image
@@ -36,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
 
           // 2. Welcome Text (Over the image)
-          const Positioned(
+          Positioned(
             top: 200,
             right: 50,
             child: Column(
@@ -51,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     fontFamily: Config.mainFont,
                   ),
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
                   "سجل الدخول للوصول إلى حسابك",
                   style: TextStyle(
@@ -80,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 BoxShadow(
                   color: Colors.black54,
                   blurRadius: 25,
-                  offset: const Offset(0, 5),
+                  offset: Offset(0, 5),
                 ),
               ],
               color: Colors.white,
@@ -101,12 +139,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontFamily: Config.mainFont,
                     ),
                   ),
-
-                  Config.spaceSmall,
+                  const SizedBox(height: 8),
 
                   TextFormField(
-                    controller: _numberController,
-                    keyboardType: TextInputType.number,
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                     style: TextStyle(fontFamily: Config.mainFont),
                     decoration: InputDecoration(
                       hintText: "09 9999 9999",
@@ -120,18 +158,31 @@ class _LoginScreenState extends State<LoginScreen> {
                         borderRadius: BorderRadius.circular(15),
                         borderSide: BorderSide.none,
                       ),
-                      // In RTL, suffix is on the left
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 16,
+                      ),
                       suffixIcon: Icon(
                         Icons.phone_iphone_outlined,
                         color: Colors.grey[500],
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني';
+                      }
+                      // تحقق إذا كان رقم هاتف
+                      if (GetUtils.isPhoneNumber(value)) {
+                        return null;
+                      }
+                      return 'يجب أن يكون بريد إلكتروني أو رقم هاتف صحيح';
+                    },
                   ),
 
-                  Config.spaceMedium,
+                  const SizedBox(height: 20),
 
                   // Password Field
-                  const Text(
+                  Text(
                     "كلمة المرور",
                     style: TextStyle(
                       color: Config.secandryColor,
@@ -140,127 +191,163 @@ class _LoginScreenState extends State<LoginScreen> {
                       fontFamily: Config.mainFont,
                     ),
                   ),
-                  Config.spaceSmall,
+                  const SizedBox(height: 8),
 
-                  TextFormField(
-                    obscureText: !_isPasswordVisible,
-                    style: TextStyle(fontFamily: Config.mainFont),
-                    decoration: InputDecoration(
-                      hintText: "أدخل كلمة المرور",
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontFamily: Config.mainFont,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: Config.outlinedBorder,
-                      // Lock on the left (Suffix in RTL)
-                      suffixIcon: Icon(
-                        Icons.lock_outline,
-                        color: Colors.grey[500],
-                      ),
-                      // Eye on the right (Prefix in RTL)
-                      prefixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                  Obx(
+                    () => TextFormField(
+                      controller: passwordController,
+                      obscureText: !_isPasswordVisible.value,
+                      textInputAction: TextInputAction.done,
+                      style: TextStyle(fontFamily: Config.mainFont),
+                      decoration: InputDecoration(
+                        hintText: "أدخل كلمة المرور",
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          fontFamily: Config.mainFont,
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        suffixIcon: Icon(
+                          Icons.lock_outline,
                           color: Colors.grey[500],
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
+                        prefixIcon: IconButton(
+                          icon: Icon(
+                            _isPasswordVisible.value
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: Colors.grey[500],
+                          ),
+                          onPressed: () {
+                            _isPasswordVisible.value =
+                                !_isPasswordVisible.value;
+                          },
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'يرجى إدخال كلمة السر';
+                        }
+                        if (value.length < 6) {
+                          return 'كلمة السر يجب أن تكون 6 أحرف على الأقل';
+                        }
+                        return null;
+                      },
+                      onFieldSubmitted: (_) {
+                        _handleLogin();
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () {
+                        Get.snackbar(
+                          'نسيت كلمة المرور',
+                          'هذه الميزة قيد التطوير',
+                          snackPosition: SnackPosition.BOTTOM,
+                        );
+                      },
+                      child: Text(
+                        "نسيت كلمة المرور؟",
+                        style: TextStyle(
+                          color: Config.secandryColor,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: Config.mainFont,
+                        ),
                       ),
                     ),
                   ),
 
-                  Config.spaceBig,
-
-                  // Forgot Password
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {},
-                        child: Text(
-                          "نسيت كلمة المرور؟",
-                          style: TextStyle(
-                            color: Config.secandryColor,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: Config.mainFont,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  Config.spaceSmall,
+                  const SizedBox(height: 20),
 
                   // Login Button
-                  MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: SizedBox(
+                  Obx(
+                    () => SizedBox(
                       width: double.infinity,
                       height: 55,
-                      child: GestureDetector(
-                        onTap: () {
-                          Get.offNamed("/");
-                        },
-                        child: Container(
+                      child: ElevatedButton(
+                        onPressed: _isLoading.value ? null : _handleLogin,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          foregroundColor: Colors.white,
+                          shadowColor: Colors.transparent,
+                          padding: EdgeInsets.zero,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: Ink(
                           decoration: BoxDecoration(
                             gradient: Config.gradientColor,
                             borderRadius: BorderRadius.circular(15),
                           ),
-                          alignment: Alignment.center,
-                          child: const Text(
-                            "تسجيل الدخول",
+                          child: Container(
+                            alignment: Alignment.center,
+                            child: _isLoading.value
+                                ? SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text(
+                                    "تسجيل الدخول",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: Config.mainFont,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // Create Account Footer
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "ليس لديك حساب؟     ",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontFamily: Config.mainFont,
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          Get.to(() => const RegistrationPage());
+                        },
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Text(
+                            "إنشاء حساب جديد ",
                             style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.white,
+                              color: Config.secandryColor,
                               fontWeight: FontWeight.bold,
                               fontFamily: Config.mainFont,
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-
-                  Config.spaceBig,
-
-                  // Create Account Footer
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              Get.to(RegistrationPage());
-                            },
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: Text(
-                                "إنشاء حساب جديد ",
-                                style: TextStyle(
-                                  color: Config.secandryColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: Config.mainFont,
-                                ),
-                              ),
-                            ),
-                          ),
-                          Text(
-                            "ليس لديك حساب؟     ",
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontFamily: Config.mainFont,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),

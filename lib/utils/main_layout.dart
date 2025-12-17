@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:marsa_app/screens/homeScreen.dart';
 import 'package:marsa_app/screens/loginScreen.dart';
 import 'package:marsa_app/screens/RegistrationScreen.dart';
-import 'package:marsa_app/utils/config.dart';
 import 'glassContainer.dart';
+import 'package:marsa_app/screens/terms.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -29,10 +29,10 @@ class _MainLayoutState extends State<MainLayout> {
                 currentPage = value;
               }),
             }),
-            children: const <Widget>[
+            children: <Widget>[
               HomeSecreen(),
               LoginScreen(),
-              HomeSecreen(),
+              TermsPage(),
               RegistrationPage(),
             ],
           ),

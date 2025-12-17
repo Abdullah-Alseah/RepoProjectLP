@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
+import 'package:marsa_app/screens/terms.dart';
+import 'package:marsa_app/screens/verificationScreen.dart';
 import 'package:marsa_app/utils/config.dart';
 
 class RegistrationPage extends StatefulWidget {
@@ -211,18 +213,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           keyboardType: TextInputType.text,
                         ),
 
-                        // 3. Email Field
-                        _buildLabel("البريد الإلكتروني"),
-                        _buildTextField(
-                          hint: "example@email.com",
-                          suffixIcon: Icons.mail_outline,
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-
                         // 4. Phone Number Field
                         _buildLabel("رقم الهاتف"),
                         _buildTextField(
-                          hint: "+963 9X XXX XXXX",
+                          hint: "9999 999 99 963+",
                           suffixIcon: Icons.phone_outlined,
                           keyboardType: TextInputType.phone,
                         ),
@@ -388,7 +382,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                               style: TextStyle(fontFamily: Config.mainFont),
                             ),
                             GestureDetector(
-                              onTap: () {},
+                              onTap: () {
+                                Get.to(TermsPage());
+                              },
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: Text(
@@ -430,7 +426,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           child: ElevatedButton(
                             onPressed: () {
                               // Handle form submission
-                              Get.toNamed("/");
+                              Get.to(OTPForm());
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _primaryColor,

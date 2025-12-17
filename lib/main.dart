@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:marsa_app/components/image.dart';
 import 'package:marsa_app/screens/RegistrationScreen.dart';
 import 'package:marsa_app/screens/homeScreen.dart';
 import 'package:marsa_app/screens/loginScreen.dart';
@@ -32,11 +31,11 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         // pre-define input decoration
         inputDecorationTheme: const InputDecorationTheme(
-          focusColor: Config.primaryColor,
+          focusColor: Config.secandryColor,
           border: Config.outlinedBorder,
           focusedBorder: Config.focusBorder,
           errorBorder: Config.errorBorder,
-          enabledBorder: Config.outlinedBorder,
+          // enabledBorder: Config.outlinedBorder,
           floatingLabelStyle: TextStyle(color: Config.primaryColor),
           prefixIconColor: Colors.black38,
         ),
