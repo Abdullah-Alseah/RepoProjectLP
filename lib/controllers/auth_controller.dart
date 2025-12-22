@@ -49,8 +49,6 @@ class AuthController extends GetxController {
           'تم بنجاح',
           'تم تسجيل الدخول بنجاح',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
         );
 
         return true;
@@ -58,13 +56,7 @@ class AuthController extends GetxController {
         throw 'يرجى إدخال بيانات صحيحة';
       }
     } catch (e) {
-      Get.snackbar(
-        'خطأ',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      Get.snackbar('خطأ', e.toString(), snackPosition: SnackPosition.BOTTOM);
       return false;
     }
   }
@@ -91,16 +83,16 @@ class AuthController extends GetxController {
 
       // محاكاة عملية التسجيل
       // في التطبيق الحقيقي، هنا نرسل البيانات للـ API
-
-      isLoggedIn.value = true;
-      userName.value = name;
-      userEmail.value = email;
-
-      // حفظ البيانات محلياً
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('userName', name);
-      await prefs.setString('userEmail', email);
+      setState() async {
+        isLoggedIn.value = true;
+        userName.value = name;
+        userEmail.value = email;
+        // حفظ البيانات محلياً
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('userName', name);
+        await prefs.setString('userEmail', email);
+      }
 
       Get.snackbar(
         'تم التسجيل',

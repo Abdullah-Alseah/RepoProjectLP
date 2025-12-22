@@ -2,20 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:get/get_instance/get_instance.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
-import 'package:marsa_app/components/apartment_card.dart';
+import 'package:marsa_app/controllers/main_layout_controller.dart';
+import 'package:marsa_app/controllers/services/auth_service.dart';
+import 'package:marsa_app/views/components/apartment_card.dart';
 import 'package:marsa_app/controllers/auth_controller.dart';
-import 'package:marsa_app/utils/config.dart';
+import 'package:marsa_app/controllers/main_layout.dart';
+import 'package:marsa_app/controllers/config.dart';
+import 'package:marsa_app/controllers/services/profile_service.dart';
 
-class HomeSecreen extends StatefulWidget {
-  const HomeSecreen({super.key});
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<HomeSecreen> createState() => _HomeSecreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeSecreenState extends State<HomeSecreen> {
-  final AuthController authController = Get.put(AuthController());
-  bool get _logged => authController.isLoggedIn.value;
+class _HomeScreenState extends State<HomeScreen> {
+  final AuthService authService = Get.put(AuthService());
+  final MainLayoutController controller = Get.put(MainLayoutController());
+  final CurrentPage currentPageController = Get.put(CurrentPage());
+  final ProfileService _profileService = Get.put(ProfileService());
+  bool get _logged => authService.isLoggedIn;
+  String? _currentProfileImage;
+  bool isLoading = false;
+
+  Future<void> _loadCachedData() async {
+    try {
+      final avatar = await _profileService.getAvatarUrl();
+
+      if (mounted) {
+        setState(() {
+          _currentProfileImage = avatar;
+        });
+      }
+    } catch (e) {
+      print('⚠️ تحذير: فشل تحميل البيانات المخزنة: $e');
+      // نستمر دون إظهار خطأ للمستخدم
+    }
+  }
+
+  ImageProvider _getProfileImage() {
+    if (_currentProfileImage != null && _currentProfileImage!.isNotEmpty) {
+      final fullImageUrl =
+          'http://192.168.1.15:8000/storage/$_currentProfileImage';
+      print('Loading profile image from URL: $fullImageUrl');
+      return NetworkImage(fullImageUrl);
+    }
+    return const AssetImage('assets/icons/default-profile.jpg');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,19 +67,25 @@ class _HomeSecreenState extends State<HomeSecreen> {
                 child: CircleAvatar(
                   radius: 30,
                   backgroundColor: Config.primaryColor.withAlpha(80),
-                  child: AuthController().isLoggedIn.value
-                      ? IconButton(
-                          onPressed: () {
-                            print(AuthController().isLoggedIn.value);
+                  child: _logged
+                      ? InkWell(
+                          onTap: () {
+                            // controller.goToPage();
+                            print(_profileService.getAvatarUrl().toString());
+                            print(_logged);
                           },
-                          icon: Icon(Icons.abc, color: Colors.white),
+                          child: CircleAvatar(
+                            radius: 30,
+                            backgroundImage: _getProfileImage(),
+                          ),
                         )
                       : IconButton(
                           onPressed: () {
-                            print(AuthController().isLoggedIn.value);
-                            Get.toNamed("/login");
+                            print(_logged);
+                            print(_profileService.getAvatarUrl().toString());
+                            // Get.toNamed("/login");
                           },
-                          icon: Icon(Icons.headphones, color: Colors.white),
+                          icon: Icon(Icons.login, color: Colors.white),
                         ),
                 ),
               ),
@@ -107,30 +147,31 @@ class _HomeSecreenState extends State<HomeSecreen> {
           SliverAppBar(
             automaticallyImplyLeading: false,
             backgroundColor: Colors.white,
-            expandedHeight: 110,
-            toolbarHeight: 110,
+            expandedHeight: 50,
+            toolbarHeight: 50,
             // للتثبيت الاب بار عند السحب
             // pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Padding(
-                padding: const EdgeInsets.all(30.0),
+                padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Row(
                   children: [
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 15),
                         decoration: BoxDecoration(
-                          color: Colors.grey[50],
+                          color: const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(15),
                         ),
                         child: TextField(
                           textAlign: TextAlign.right,
-
                           textDirection: TextDirection.rtl,
                           style: TextStyle(fontFamily: Config.mainFont),
+
                           decoration: InputDecoration(
                             hintText: "...ابحث عن موقع، مدينة",
                             hintTextDirection: TextDirection.rtl,
+
                             border: InputBorder.none,
                             suffixIcon: IconButton(
                               icon: Icon(Icons.search, color: Colors.grey),
@@ -152,18 +193,10 @@ class _HomeSecreenState extends State<HomeSecreen> {
             child: SingleChildScrollView(
               child: Column(
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: ApartmentCardWidget(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: ApartmentCardWidget(),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: ApartmentCardWidget(),
-                  ),
+                  ApartmentCardWidget(),
+                  ApartmentCardWidget(),
+                  ApartmentCardWidget(),
+                  const SizedBox(height: 70),
                 ],
               ),
             ),

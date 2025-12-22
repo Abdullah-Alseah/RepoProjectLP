@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/state_manager.dart';
 
 class Config {
+  static const String baseUrl = 'hhttp://192.168.1.15:8000/api';
+  static const bool debugMode = true;
+  static const int apiTimeout = 30; // ثواني
+
   static MediaQueryData? mediaQueryData;
   static double? screenWidth;
   static double? screenHeight;
@@ -31,7 +36,7 @@ class Config {
   );
 
   static const focusBorder = OutlineInputBorder(
-    borderRadius: BorderRadius.all(Radius.circular(50)),
+    borderRadius: BorderRadius.all(Radius.circular(8)),
     borderSide: BorderSide(color: primaryColor),
   );
 
@@ -64,4 +69,14 @@ class Config {
   );
 
   static const mainFont = "Tajawal";
+
+  static int pageCurrent = 0; 
+}
+
+class CurrentPage extends GetxController{
+  var pageIndex = 0.obs;
+
+  void updatePageIndex(int index) {
+    pageIndex.value = index;
+  }
 }

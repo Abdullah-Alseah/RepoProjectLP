@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 // تأكد من أن هذه المسارات صحيحة في مشروعك
-import 'package:marsa_app/utils/config.dart';
-import 'package:marsa_app/utils/openMail.dart';
+import 'package:marsa_app/controllers/config.dart';
+import 'package:marsa_app/controllers/openMail.dart';
 
 class TermsPage extends StatefulWidget {
   const TermsPage({super.key});

@@ -1,8 +1,9 @@
+// lib/screens/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:marsa_app/controllers/auth_controller.dart';
-import 'package:marsa_app/screens/RegistrationScreen.dart';
-import 'package:marsa_app/screens/verificationScreen.dart';
-import 'package:marsa_app/utils/config.dart';
+import 'package:marsa_app/views/RegistrationScreen.dart';
+import 'package:marsa_app/controllers/services/auth_service.dart';
+import 'package:marsa_app/controllers/services/storage_service.dart';
+import 'package:marsa_app/controllers/config.dart';
 import 'package:get/get.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,14 +16,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _isPasswordVisible = false.obs;
   final _formKey = GlobalKey<FormState>();
-  final emailController = TextEditingController();
+  final phoneController = TextEditingController();
   final passwordController = TextEditingController();
   final _isLoading = false.obs;
-  final AuthController authController = Get.put(AuthController());
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
-    emailController.dispose();
+    phoneController.dispose();
     passwordController.dispose();
     super.dispose();
   }
@@ -31,27 +32,64 @@ class _LoginScreenState extends State<LoginScreen> {
     if (_formKey.currentState!.validate()) {
       _isLoading.value = true;
 
+      // إخفاء لوحة المفاتيح
+      FocusScope.of(context).unfocus();
+
       try {
-        final success = await authController.login(
-          name: 'مستخدم',
-          email: emailController.text,
+        final result = await _authService.login(
+          phone: phoneController.text.trim(),
           password: passwordController.text,
         );
 
         _isLoading.value = false;
 
-        if (success) {
-          Get.to(OTPForm());
+        if (result['success'] == true) {
+          Get.snackbar(
+            'نجاح',
+            result['message'] ?? 'تم تسجيل الدخول بنجاح',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+          );
+
+          // حفظ الـ token (إذا كان موجوداً)
+          if (result['token'] != null) {
+            print('🔐 Token received: ${result['token']}');
+            // هنا يمكنك حفظ الـ token في SharedPreferences
+            await StorageService.saveToken(result['token']);
+          }
+
+          // الانتقال للصفحة الرئيسية
+          Future.delayed(const Duration(seconds: 1), () {
+            Get.offAllNamed('/'); 
+          });
+        } else {
+          String errorMessage = result['message'] ?? 'فشل تسجيل الدخول';
+
+          if (result['statusCode'] == 401) {
+            errorMessage = 'رقم الهاتف أو كلمة المرور غير صحيحة';
+          } else if (result['statusCode'] == 403) {
+            errorMessage = 'الحساب غير مفعل أو في انتظار الموافقة';
+          }
+
+          Get.snackbar(
+            'خطأ',
+            errorMessage,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+            snackPosition: SnackPosition.TOP,
+          );
         }
       } catch (e) {
         _isLoading.value = false;
         Get.snackbar(
           'خطأ',
-          'حدث خطأ أثناء تسجيل الدخول',
-          snackPosition: SnackPosition.BOTTOM,
+          'حدث خطأ في الاتصال بالخادم',
           backgroundColor: Colors.red,
           colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
         );
+        print('❌ Login error: $e');
       }
     }
   }
@@ -108,9 +146,9 @@ class _LoginScreenState extends State<LoginScreen> {
             height: Config.screenHeight! * 0.6,
             margin: const EdgeInsets.only(
               top: 300,
-              left: 50,
-              right: 50,
-              bottom: 0,
+              left: 20,
+              right: 20,
+              bottom: 20,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
             decoration: const BoxDecoration(
@@ -142,8 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
 
                   TextFormField(
-                    controller: emailController,
-                    keyboardType: TextInputType.emailAddress,
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
                     textInputAction: TextInputAction.next,
                     style: TextStyle(fontFamily: Config.mainFont),
                     decoration: InputDecoration(
@@ -169,13 +207,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني';
+                        return 'يرجى إدخال رقم الهاتف';
                       }
-                      // تحقق إذا كان رقم هاتف
-                      if (GetUtils.isPhoneNumber(value)) {
-                        return null;
+                      // تنظيف الرقم من المسافات والرموز
+                      final cleanedPhone = value.replaceAll(
+                        RegExp(r'[^\d+]'),
+                        '',
+                      );
+                      if (cleanedPhone.length < 9) {
+                        return 'يجب أن يكون رقم هاتف صحيح';
                       }
-                      return 'يجب أن يكون بريد إلكتروني أو رقم هاتف صحيح';
+                      return null;
                     },
                   ),
 
@@ -247,18 +289,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 10),
-
                   // Forgot Password
                   Align(
-                    alignment: Alignment.centerLeft,
+                    alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Get.snackbar(
-                          'نسيت كلمة المرور',
-                          'هذه الميزة قيد التطوير',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
+                        Get.toNamed(
+                          '/forgot-password',
+                        ); // تحتاج لإنشاء هذه الشاشة
                       },
                       child: Text(
                         "نسيت كلمة المرور؟",
@@ -291,13 +329,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: Ink(
                           decoration: BoxDecoration(
-                            gradient: Config.gradientColor,
+                            gradient: LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [
+                                Config.primaryColor,
+                                Config.primaryColor.withOpacity(0.8),
+                              ],
+                            ),
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Container(
                             alignment: Alignment.center,
                             child: _isLoading.value
-                                ? SizedBox(
+                                ? const SizedBox(
                                     height: 24,
                                     width: 24,
                                     child: CircularProgressIndicator(
@@ -326,13 +371,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        "ليس لديك حساب؟     ",
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontFamily: Config.mainFont,
-                        ),
-                      ),
                       GestureDetector(
                         onTap: () {
                           Get.to(() => const RegistrationPage());
@@ -340,13 +378,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: Text(
-                            "إنشاء حساب جديد ",
+                            "إنشاء حساب جديد  ",
                             style: TextStyle(
                               color: Config.secandryColor,
                               fontWeight: FontWeight.bold,
                               fontFamily: Config.mainFont,
                             ),
                           ),
+                        ),
+                      ),
+                      Text(
+                        "ليس لديك حساب؟     ",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontFamily: Config.mainFont,
                         ),
                       ),
                     ],
