@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_instance/get_instance.dart';
-import 'package:get/route_manager.dart';
-import 'package:get/state_manager.dart';
+import 'package:get/get.dart';
 import 'package:marsa_app/controllers/main_layout_controller.dart';
-import 'package:marsa_app/controllers/services/auth_service.dart';
 import 'package:marsa_app/views/components/apartment_card.dart';
-import 'package:marsa_app/controllers/auth_controller.dart';
-import 'package:marsa_app/controllers/main_layout.dart';
 import 'package:marsa_app/controllers/config.dart';
 import 'package:marsa_app/controllers/services/profile_service.dart';
 
@@ -18,42 +13,107 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final AuthService authService = Get.put(AuthService());
+  final ProfileService _profileService = ProfileService();
   final MainLayoutController controller = Get.put(MainLayoutController());
-  final CurrentPage currentPageController = Get.put(CurrentPage());
-  final ProfileService _profileService = Get.put(ProfileService());
-  bool get _logged => authService.isLoggedIn;
-  String? _currentProfileImage;
-  bool isLoading = false;
 
-  Future<void> _loadCachedData() async {
+  String? _avatarUrl;
+  String? _firstName;
+  String? _lastName;
+  bool _isLoading = true;
+  bool _logged = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfileData();
+    });
+  }
+
+  Future<void> _loadProfileData() async {
     try {
-      final avatar = await _profileService.getAvatarUrl();
+      setState(() => _isLoading = true);
 
-      if (mounted) {
+      // 1. التحقق من التوكن
+      final token = await _profileService.getToken();
+      _logged = token != null && token.isNotEmpty;
+      print('🔐 حالة تسجيل الدخول: $_logged');
+
+      if (!_logged) {
+        print('⚠️ المستخدم غير مسجل');
         setState(() {
-          _currentProfileImage = avatar;
+          _isLoading = false;
+          _avatarUrl = null;
         });
+        return;
+      }
+
+      // 2. جلب البيانات المحلية أولاً
+      print('💾 جلب البيانات المحلية...');
+      final userData = await _profileService.getCachedUserData();
+      if (userData != null) {
+        _updateFromData(userData);
+        print('✅ تم تحميل البيانات المحلية');
+      }
+
+      // 3. تحديث البيانات من API
+      print('🔄 تحديث البيانات من API...');
+      final result = await _profileService.getUserProfile();
+
+      if (result['success'] == true && result['data'] != null) {
+        final apiData = result['data'] as Map<String, dynamic>;
+        _updateFromData(apiData);
+        print('✅ تم تحديث البيانات من API');
+      } else {
+        print('⚠️ فشل تحديث البيانات من API: ${result['message']}');
       }
     } catch (e) {
-      print('⚠️ تحذير: فشل تحميل البيانات المخزنة: $e');
-      // نستمر دون إظهار خطأ للمستخدم
+      print('💥 خطأ في تحميل البروفايل: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      print('🔍 === انتهاء تحميل البروفايل ===');
     }
   }
 
-  ImageProvider _getProfileImage() {
-    if (_currentProfileImage != null && _currentProfileImage!.isNotEmpty) {
-      final fullImageUrl =
-          'http://192.168.1.15:8000/storage/$_currentProfileImage';
-      print('Loading profile image from URL: $fullImageUrl');
-      return NetworkImage(fullImageUrl);
+  void _updateFromData(Map<String, dynamic> data) {
+    // نفس الطريقة المستخدمة في صفحة البروفايل
+    String? rawAvatarUrl = data['avatar_url']?.toString();
+
+    if (rawAvatarUrl != null && rawAvatarUrl.isNotEmpty) {
+      // بناء URL كامل للصورة بنفس طريقة صفحة البروفايل
+      if (rawAvatarUrl.startsWith('http')) {
+        _avatarUrl = rawAvatarUrl; // إذا كان URL كاملاً
+      } else {
+        _avatarUrl = 'http://192.168.1.15:8000/storage/$rawAvatarUrl';
+      }
+      print('🖼️ رابط الصورة المبنية: $_avatarUrl');
+    } else {
+      _avatarUrl = null;
+      print('⚠️ لا توجد صورة في البيانات');
     }
-    return const AssetImage('assets/icons/default-profile.jpg');
+
+    _firstName = data['first_name']?.toString();
+    _lastName = data['last_name']?.toString();
+  }
+
+  String _getInitials() {
+    String initials = '';
+    if (_firstName != null && _firstName!.isNotEmpty) {
+      initials += _firstName![0];
+    }
+    if (_lastName != null && _lastName!.isNotEmpty) {
+      initials += _lastName![0];
+    }
+    if (initials.isEmpty) initials = 'U';
+    return initials.toUpperCase();
   }
 
   @override
   Widget build(BuildContext context) {
     Config.init(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: CustomScrollView(
@@ -63,36 +123,16 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: const Color.fromARGB(255, 255, 255, 255),
             actions: [
               Container(
-                padding: EdgeInsetsGeometry.all(10),
+                padding: const EdgeInsets.all(10),
                 child: CircleAvatar(
                   radius: 30,
                   backgroundColor: Config.primaryColor.withAlpha(80),
-                  child: _logged
-                      ? InkWell(
-                          onTap: () {
-                            // controller.goToPage();
-                            print(_profileService.getAvatarUrl().toString());
-                            print(_logged);
-                          },
-                          child: CircleAvatar(
-                            radius: 30,
-                            backgroundImage: _getProfileImage(),
-                          ),
-                        )
-                      : IconButton(
-                          onPressed: () {
-                            print(_logged);
-                            print(_profileService.getAvatarUrl().toString());
-                            // Get.toNamed("/login");
-                          },
-                          icon: Icon(Icons.login, color: Colors.white),
-                        ),
+                  child: _buildProfileAvatar(),
                 ),
               ),
             ],
             expandedHeight: 300,
             floating: false,
-            // للتثبيت الاب بار عند السحب
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
@@ -106,7 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Stack(
                   children: [
-                    // تدرج خفيف أسفل الكارت
                     Positioned(
                       bottom: 0,
                       left: 0,
@@ -137,7 +176,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   color: Config.secandryColor,
                   fontFamily: Config.mainFont,
-                  // color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -149,8 +187,6 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: Colors.white,
             expandedHeight: 50,
             toolbarHeight: 50,
-            // للتثبيت الاب بار عند السحب
-            // pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
@@ -167,11 +203,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           textAlign: TextAlign.right,
                           textDirection: TextDirection.rtl,
                           style: TextStyle(fontFamily: Config.mainFont),
-
                           decoration: InputDecoration(
                             hintText: "...ابحث عن موقع، مدينة",
                             hintTextDirection: TextDirection.rtl,
-
                             border: InputBorder.none,
                             suffixIcon: IconButton(
                               icon: Icon(Icons.search, color: Colors.grey),
@@ -203,6 +237,83 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildProfileAvatar() {
+    return InkWell(
+      onTap: () {
+        print('=== معلومات البروفايل في HomeScreen ===');
+        print('🔐 حالة تسجيل الدخول: $_logged');
+        print('🖼️ رابط الصورة المبنية: $_avatarUrl');
+        print('👤 الاسم: $_firstName $_lastName');
+
+        if (!_logged) {
+          print('👉 الانتقال لتسجيل الدخول');
+          Get.toNamed("/login");
+        } else {
+          print('👉 الانتقال لصفحة البروفايل');
+          controller.goToPage();
+        }
+      },
+      child: _isLoading
+          ? CircleAvatar(
+              radius: 18,
+              backgroundColor: Colors.white,
+              child: SizedBox(
+                width: 15,
+                height: 15,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Config.primaryColor,
+                  ),
+                ),
+              ),
+            )
+          : !_logged
+          ? CircleAvatar(
+              radius: 18,
+              backgroundColor: Config.primaryColor,
+              child: Icon(Icons.login, color: Colors.white, size: 20),
+            )
+          : _avatarUrl != null && _avatarUrl!.isNotEmpty
+          ? CircleAvatar(
+              radius: 18,
+              backgroundImage: NetworkImage(_avatarUrl!),
+              onBackgroundImageError: (exception, stackTrace) {
+                print('❌ خطأ في تحميل الصورة: $exception');
+                print('🔗 رابط الصورة: $_avatarUrl');
+                // استخدم الأحرف الأولية عند فشل التحميل
+                Future.microtask(() {
+                  if (mounted) {
+                    setState(() => _avatarUrl = null);
+                  }
+                });
+              },
+              child: _avatarUrl == null || _avatarUrl!.isEmpty
+                  ? Text(
+                      _getInitials(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    )
+                  : null,
+            )
+          : CircleAvatar(
+              radius: 18,
+              backgroundColor: Config.primaryColor,
+              child: Text(
+                _getInitials(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
     );
   }
 }

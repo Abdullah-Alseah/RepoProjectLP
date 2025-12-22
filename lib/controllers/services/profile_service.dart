@@ -373,6 +373,16 @@ class ProfileService {
     }
   }
 
+    //// جلب حالة تسجيل الدخول 
+Future<bool> checkLoginStatus() async {
+    try {
+      final token = await getToken();
+      return token != null && token.isNotEmpty;
+    } catch (e) {
+      print('❌ خطأ في التحقق من حالة تسجيل الدخول: $e');
+      return false;
+    }
+  }
   /// جلب الدور
   Future<String?> getRole() async {
     try {

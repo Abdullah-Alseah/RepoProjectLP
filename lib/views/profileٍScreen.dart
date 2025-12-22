@@ -22,6 +22,7 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _isInitialLoad = true;
   bool _hasError = false;
   String? _errorMessage;
+  bool _logged = false;
 
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
@@ -35,13 +36,40 @@ class _ProfilePageState extends State<ProfilePage> {
   final ProfileService _profileService = ProfileService();
   final ImagePicker _imagePicker = ImagePicker();
 
-  final AuthService authService = Get.put(AuthService());
-  bool get _logged => authService.isLoggedIn;
-
   @override
   void initState() {
     super.initState();
-    _initializeProfileData();
+    _checkLoginStatusAndInitialize();
+  }
+
+  /// التحقق من حالة تسجيل الدخول ثم تهيئة البيانات
+  Future<void> _checkLoginStatusAndInitialize() async {
+    print('🔍 === التحقق من حالة تسجيل الدخول في صفحة البروفايل ===');
+
+    try {
+      // التحقق من حالة تسجيل الدخول أولاً
+      _logged = await _profileService.isLoggedIn();
+      print('🔐 حالة تسجيل الدخول: $_logged');
+      // إذا كان مسجلاً، قم بتهيئة البيانات
+      await _initializeProfileData();
+    } catch (e) {
+      print('💥 خطأ في التحقق من حالة تسجيل الدخول: $e');
+      _logged = false;
+
+      Get.snackbar(
+        'خطأ',
+        'حدث خطأ في التحقق من حالة تسجيل الدخول',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+
+      // إعادة التوجيه لتسجيل الدخول في حالة الخطأ
+      Future.delayed(Duration.zero, () {
+        if (mounted) {
+          Get.offAllNamed('/login');
+        }
+      });
+    }
   }
 
   /// تهيئة و تحميل بيانات البروفايل
@@ -146,13 +174,6 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       } else if (result['statusCode'] == 401) {
         // حالة انتهاء الجلسة
-        Get.offAllNamed('/login');
-        Get.snackbar(
-          'انتهت الجلسة',
-          'يرجى تسجيل الدخول مرة أخرى',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
       } else if (result['message'] != null) {
         print('⚠️ تحذير API: ${result['message']}');
         // isLogged = false;
@@ -262,6 +283,7 @@ class _ProfilePageState extends State<ProfilePage> {
       });
 
       if (result['success'] == true) {
+        _reloadData();
         Get.snackbar(
           'نجاح',
           result['message'] ?? 'تم حفظ التغييرات بنجاح',
