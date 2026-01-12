@@ -1,11 +1,12 @@
-// lib/services/api_service.dart
-import 'dart:async';
-
+// lib/controllers/services/api_service.dart
 import 'package:dio/dio.dart';
-import 'package:get/get.dart' hide Response, FormData, MultipartFile;
+import 'package:get/get.dart';
+import 'package:marsa_app/controllers/config.dart';
+import 'package:marsa_app/controllers/services/storage_service.dart';
+import 'package:marsa_app/controllers/services/test_connection.dart';
 
 class ApiService {
-  static String baseUrl = 'http://192.168.1.15:8000/api';
+  static String baseUrl = 'http://${Configuration.baseUrl}:8000/api';
 
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
@@ -13,7 +14,7 @@ class ApiService {
 
   late Dio _dio;
   bool _isInitialized = false;
-  Completer<void>? _initCompleter;
+  final StorageService _storageService = StorageService();
 
   /// تهيئة الـ Dio (متزامن)
   void initialize() {
@@ -33,7 +34,10 @@ class ApiService {
       ),
     );
 
-    // إضافة LogInterceptor فقط
+    // إضافة Interceptor للتعامل مع المصادقة
+    _setupInterceptors();
+
+    // إضافة LogInterceptor
     _dio.interceptors.add(
       LogInterceptor(
         request: true,
@@ -49,7 +53,66 @@ class ApiService {
     print('✅ ApiService initialized successfully');
   }
 
-  /// الحصول على Dio (غير متزامن للتحقق من التهيئة)
+  /// إعداد الـ Interceptors
+  void _setupInterceptors() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          // إضافة التوكن تلقائياً لكل طلب
+          final token = await _storageService.getToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+            print('🔐 تم إضافة التوكن إلى الطلب');
+
+            // إضافة معرف المستخدم في الهيدر إذا لزم الأمر
+            final userId = await _storageService.getUserId();
+            if (userId > 0) {
+              options.headers['X-User-Id'] = userId.toString();
+            }
+          } else {
+            print('⚠️ لا يوجد توكن متاح للطلب');
+          }
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print(
+            '✅ Response ${response.statusCode}: ${response.requestOptions.path}',
+          );
+
+          // حفظ بيانات المستخدم من الاستجابة إذا كانت موجودة
+          if (response.data != null &&
+              response.data['user'] != null &&
+              response.requestOptions.path.contains('/auth/')) {
+            _storageService.saveUserData(response.data['user']);
+          }
+
+          return handler.next(response);
+        },
+        onError: (DioException error, handler) async {
+          print(
+            '❌ Dio Error: ${error.response?.statusCode} - ${error.response?.data}',
+          );
+
+          // إذا كان الخطأ 401 (غير مصرح)
+          if (error.response?.statusCode == 401) {
+            print('🔒 تم رفض الطلب (401). تحقق من صلاحية التوكن');
+
+            // حذف التوكن القديم
+            await _storageService.clearUserData();
+
+            // إعادة التوجيه لصفحة تسجيل الدخول إذا كان في سياق واجهة
+            if (Get.isDialogOpen == false) {
+              Get.offAllNamed('/login');
+            }
+          }
+
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
+  /// الحصول على Dio
   Dio get dio {
     if (!_isInitialized) {
       initialize();
@@ -57,37 +120,21 @@ class ApiService {
     return _dio;
   }
 
-  /// تهيئة Dio بشكل غير متزامن (للاستخدام إذا لزم الأمر)
-  Future<void> ensureInitialized() async {
-    if (_isInitialized) return;
-
-    if (_initCompleter != null) {
-      return _initCompleter!.future;
+Future<Map<String, dynamic>> getLastBooking(int apartmentId) async {
+    try {
+      final response = await dio.get(
+        '/bookings',
+        queryParameters: {
+          'apartment_id': apartmentId,
+          'status': 'confirmed', 
+        },
+      );
+      return response.data;
+    } catch (e) {
+      rethrow;
     }
-
-    _initCompleter = Completer<void>();
-    initialize();
-    _initCompleter!.complete();
-    _initCompleter = null;
   }
-
-  // إعداد التوكن للمصادقة
-  void setAuthToken(String token) {
-    dio.options.headers['Authorization'] = 'Bearer $token';
-  }
-
-  void clearAuthToken() {
-    dio.options.headers.remove('Authorization');
-  }
-
-  // تغيير الـ baseUrl
-  void updateBaseUrl(String newUrl) {
-    baseUrl = newUrl;
-    dio.options.baseUrl = baseUrl;
-    print('🔄 Base URL updated to: $baseUrl');
-  }
-
-  // اختبار الاتصال
+  /// التحقق من الاتصال
   Future<bool> testConnection() async {
     try {
       final response = await dio.get('/');

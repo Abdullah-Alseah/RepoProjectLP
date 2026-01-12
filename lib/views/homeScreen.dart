@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:marsa_app/controllers/main_layout_controller.dart';
+import 'package:marsa_app/controllers/services/test_connection.dart';
 import 'package:marsa_app/views/components/apartment_card.dart';
+import 'package:marsa_app/stores/apartment_store.dart';
 import 'package:marsa_app/controllers/config.dart';
 import 'package:marsa_app/controllers/services/profile_service.dart';
 
@@ -13,7 +16,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ProfileService _profileService = ProfileService();
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
   final MainLayoutController controller = Get.put(MainLayoutController());
 
   String? _avatarUrl;
@@ -21,11 +25,14 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _lastName;
   bool _isLoading = true;
   bool _logged = false;
+  final ProfileService _profileService = ProfileService();
+  final ApartmentStore apartmentStore = ApartmentStore.instance;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      apartmentStore.fetchApartments();
       _loadProfileData();
     });
   }
@@ -86,7 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (rawAvatarUrl.startsWith('http')) {
         _avatarUrl = rawAvatarUrl; // إذا كان URL كاملاً
       } else {
-        _avatarUrl = 'http://192.168.1.15:8000/storage/$rawAvatarUrl';
+        _avatarUrl =
+            'http://${Configuration.baseUrl}:8000/storage/$rawAvatarUrl';
       }
       print('🖼️ رابط الصورة المبنية: $_avatarUrl');
     } else {
@@ -112,130 +120,305 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Config.init(context);
+    Configuration.init(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            automaticallyImplyLeading: false,
-            backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-            actions: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                child: CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Config.primaryColor.withAlpha(80),
-                  child: _buildProfileAvatar(),
-                ),
-              ),
-            ],
-            expandedHeight: 300,
-            floating: false,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              background: Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  image: const DecorationImage(
-                    image: AssetImage('assets/background/1.jpg'),
-                    fit: BoxFit.cover,
+      body: RefreshIndicator(
+        key: _refreshIndicatorKey,
+        onRefresh: _refreshData,
+        color: Configuration.primaryColor,
+        backgroundColor: Colors.white,
+        strokeWidth: 3.0,
+        displacement: 40.0,
+        edgeOffset: 0,
+        notificationPredicate: (ScrollNotification notification) {
+          // السماح بالسحب للتحديث فقط عند الوصول للقمة
+          return notification.metrics.pixels == 0;
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // AppBar الأول
+            SliverAppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.white,
+              actions: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  child: CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Configuration.primaryColor.withAlpha(80),
+                    child: _buildProfileAvatar(),
                   ),
                 ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: 120,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.white, Colors.white.withAlpha(0)],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white,
-                              blurRadius: 30,
-                              offset: const Offset(0, 25),
-                            ),
-                          ],
-                        ),
-                      ),
+              ],
+              expandedHeight: 300,
+              floating: false,
+              pinned: true,
+              flexibleSpace: FlexibleSpaceBar(
+                centerTitle: true,
+                background: Container(
+                  height: 300,
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/background/3.jpg'),
+                      fit: BoxFit.cover,
                     ),
-                  ],
-                ),
-              ),
-              title: Text(
-                'مَرسَى',
-                style: TextStyle(
-                  color: Config.secandryColor,
-                  fontFamily: Config.mainFont,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-
-          SliverAppBar(
-            automaticallyImplyLeading: false,
-            backgroundColor: Colors.white,
-            expandedHeight: 50,
-            toolbarHeight: 50,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 15),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: TextField(
-                          textAlign: TextAlign.right,
-                          textDirection: TextDirection.rtl,
-                          style: TextStyle(fontFamily: Config.mainFont),
-                          decoration: InputDecoration(
-                            hintText: "...ابحث عن موقع، مدينة",
-                            hintTextDirection: TextDirection.rtl,
-                            border: InputBorder.none,
-                            suffixIcon: IconButton(
-                              icon: Icon(Icons.search, color: Colors.grey),
-                              onPressed: () {
-                                // وظيفة البحث
-                              },
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: 120,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.white, Colors.white.withAlpha(0)],
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
                             ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.white,
+                                blurRadius: 30,
+                                offset: Offset(0, 25),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                ),
+                title: Text(
+                  'مَرسَى',
+                  style: TextStyle(
+                    color: Configuration.secandryColor,
+                    fontFamily: Configuration.mainFont,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
-          ),
 
-          SliverToBoxAdapter(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  ApartmentCardWidget(),
-                  ApartmentCardWidget(),
-                  ApartmentCardWidget(),
-                  const SizedBox(height: 70),
-                ],
+            // AppBar الثاني (للبحث)
+            SliverAppBar(
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.white,
+              expandedHeight: 50,
+              toolbarHeight: 50,
+              // pinned: true,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 15),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: TextField(
+                            textAlign: TextAlign.right,
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              fontFamily: Configuration.mainFont,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: "...ابحث عن موقع، مدينة",
+                              hintTextDirection: TextDirection.rtl,
+                              border: InputBorder.none,
+                              suffixIcon: IconButton(
+                                icon: const Icon(
+                                  Icons.search,
+                                  color: Colors.grey,
+                                ),
+                                onPressed: () {
+                                  // وظيفة البحث
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        ],
+
+            Obx(() {
+              if (apartmentStore.isLoading &&
+                  apartmentStore.apartments.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Lottie.asset(
+                          'assets/icons/Sandy Loading.json', // تأكد من صحة المسار
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.contain,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'جاري تحميل الشقق...',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              if (apartmentStore.errorMessage.isNotEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red.shade400,
+                            size: 64,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'حدث خطأ',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade400,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            apartmentStore.errorMessage,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: () {
+                              apartmentStore.fetchApartments(refresh: true);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Configuration.primaryColor,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            child: const Text('إعادة المحاولة'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              if (apartmentStore.apartments.isEmpty) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 80,
+                          color: Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'لا توجد شقق متاحة',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'يمكنك المحاولة مرة أخرى لاحقاً',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () {
+                            apartmentStore.fetchApartments(refresh: true);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Configuration.primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('إعادة التحميل'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  // إذا كان هناك المزيد من البيانات وأصبحنا في النهاية
+                  if (index == apartmentStore.apartments.length) {
+                    if (apartmentStore.hasMore) {
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              apartmentStore.isLoading
+                                  ? Lottie.asset(
+                                      'assets/icons/Sandy Loading.json', // تأكد من صحة المسار
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.contain,
+                                    )
+                                  : ElevatedButton(
+                                      onPressed: () {
+                                        apartmentStore.loadMoreApartments();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            Configuration.primaryColor,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      child: const Text('تحميل المزيد'),
+                                    ),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox(height: 10); // مسافة في النهاية
+                  }
+
+                  // عرض بطاقة الشقة
+                  final apartment = apartmentStore.apartments[index];
+                  return ApartmentCardWidget(
+                    apartment: apartment,
+                    index: index,
+                  );
+                }, childCount: apartmentStore.apartments.length + 1),
+              );
+            }),
+            SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
     );
   }
@@ -253,7 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Get.toNamed("/login");
         } else {
           print('👉 الانتقال لصفحة البروفايل');
-          controller.goToPage();
+          controller.goToPage(3);
         }
       },
       child: _isLoading
@@ -266,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    Config.primaryColor,
+                    Configuration.primaryColor,
                   ),
                 ),
               ),
@@ -274,8 +457,8 @@ class _HomeScreenState extends State<HomeScreen> {
           : !_logged
           ? CircleAvatar(
               radius: 18,
-              backgroundColor: Config.primaryColor,
-              child: Icon(Icons.login, color: Colors.white, size: 20),
+              backgroundColor: Configuration.primaryColor,
+              child: const Icon(Icons.login, color: Colors.white, size: 20),
             )
           : _avatarUrl != null && _avatarUrl!.isNotEmpty
           ? CircleAvatar(
@@ -284,7 +467,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onBackgroundImageError: (exception, stackTrace) {
                 print('❌ خطأ في تحميل الصورة: $exception');
                 print('🔗 رابط الصورة: $_avatarUrl');
-                // استخدم الأحرف الأولية عند فشل التحميل
                 Future.microtask(() {
                   if (mounted) {
                     setState(() => _avatarUrl = null);
@@ -294,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: _avatarUrl == null || _avatarUrl!.isEmpty
                   ? Text(
                       _getInitials(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
@@ -304,10 +486,10 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : CircleAvatar(
               radius: 18,
-              backgroundColor: Config.primaryColor,
+              backgroundColor: Configuration.primaryColor,
               child: Text(
                 _getInitials(),
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
@@ -315,5 +497,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
     );
+  }
+
+  Future<void> _refreshData() async {
+    // تنفيذ كلتا العمليتين في نفس الوقت
+    await Future.wait([
+      apartmentStore.fetchApartments(refresh: true),
+      _loadProfileData(),
+    ]);
   }
 }

@@ -1,6 +1,6 @@
 name: marsa_app
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 
 version: 1.0.0+1
 
@@ -27,7 +27,19 @@ dependencies:
   shared_preferences: ^2.5.4
   universal_html: ^2.3.0
   http: ^1.6.0
-  flutter_localization: ^0.3.3
+  # flutter_localization: ^0.3.3
+  cached_network_image: ^3.4.1
+  flutter_cache_manager: ^3.4.1
+  dashed_border: ^1.0.0
+  lottie: ^3.3.2
+  flutter_launcher_icons: ^0.14.4
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/marsa/AppIcon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/marsa/AppIcon.png"
 
 dev_dependencies:
   flutter_test:
@@ -41,7 +53,7 @@ flutter:
   # 1. قسم الصور (assets)
   # يجب أن يكون بمسافة بادئة (2 مسافة) تحت flutter
   assets:
-    - assets/                  # للملفات الموجودة مباشرة داخل assets
+    - assets/ # للملفات الموجودة مباشرة داخل assets
     - assets/apartmentsImages/
     - assets/background/
     - assets/icons/

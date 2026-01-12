@@ -109,19 +109,18 @@ class _OTPFormState extends State<OTPForm> {
         Get.snackbar(
           'نجاح',
           result['message'] ?? 'تم التحقق بنجاح',
-          backgroundColor: Colors.green.withAlpha(70),
+          backgroundColor: Colors.green,
           colorText: Colors.black,
         );
 
-        // الانتقال للصفحة الرئيسية أو التالية
         Future.delayed(const Duration(seconds: 1), () {
-          Get.offAllNamed('/'); // غير هذا إلى المسار المناسب
+          Get.offAllNamed('/login');
         });
       } else {
         Get.snackbar(
           'خطأ',
           result['message'] ?? 'رمز التحقق غير صحيح',
-          backgroundColor: Colors.red.withAlpha(70),
+          backgroundColor: Colors.red,
           colorText: Colors.black,
         );
 
@@ -148,6 +147,8 @@ class _OTPFormState extends State<OTPForm> {
   }
 
   Future<void> _resendOTP() async {
+    final otp = _getFullOTP();
+
     if (!_isResendEnabled) return;
 
     setState(() {
@@ -162,7 +163,7 @@ class _OTPFormState extends State<OTPForm> {
       colorText: Colors.white,
     );
 
-    await _authService.resendOtp(phone: _phoneNumber);
+    await _authService.verifyOtp(phone: _phoneNumber, otp: otp);
 
     _startResendTimer();
   }
@@ -176,27 +177,27 @@ class _OTPFormState extends State<OTPForm> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Config.spaceBig,
-    
+              Configuration.spaceBig,
+
               // Back Button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: IconButton(
                   onPressed: () => Get.back(),
                   icon: const Icon(Icons.arrow_back),
-                  color: Config.primaryColor,
+                  color: Configuration.primaryColor,
                 ),
               ),
-    
+
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Text(
                   "رمز التحقق",
                   style: TextStyle(
-                    color: Config.primaryColor,
+                    color: Configuration.primaryColor,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                   ),
                 ),
               ),
@@ -205,13 +206,13 @@ class _OTPFormState extends State<OTPForm> {
                 child: Text(
                   "أدخل رمز التحقق المُرسَل إلى رقم هاتفك",
                   style: TextStyle(
-                    color: Config.primaryColor,
+                    color: Configuration.primaryColor,
                     fontSize: 16,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                   ),
                 ),
               ),
-    
+
               Padding(
                 padding: const EdgeInsets.only(right: 20.0, top: 10),
                 child: Row(
@@ -225,10 +226,10 @@ class _OTPFormState extends State<OTPForm> {
                       child: Text(
                         "تغيير رقم الهاتف؟",
                         style: TextStyle(
-                          color: Config.primaryColor,
+                          color: Configuration.primaryColor,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          fontFamily: Config.mainFont,
+                          fontFamily: Configuration.mainFont,
                         ),
                       ),
                     ),
@@ -237,18 +238,18 @@ class _OTPFormState extends State<OTPForm> {
                       _getMaskedPhoneNumber(),
                       textDirection: TextDirection.rtl,
                       style: TextStyle(
-                        color: Config.primaryColor,
+                        color: Configuration.primaryColor,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        fontFamily: Config.mainFont,
+                        fontFamily: Configuration.mainFont,
                       ),
                     ),
                   ],
                 ),
               ),
-    
+
               SizedBox(height: 25),
-    
+
               // OTP Fields
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -273,8 +274,8 @@ class _OTPFormState extends State<OTPForm> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          fontFamily: Config.mainFont,
-                          color: Config.primaryColor,
+                          fontFamily: Configuration.mainFont,
+                          color: Configuration.primaryColor,
                         ),
                         decoration: InputDecoration(
                           filled: true,
@@ -286,14 +287,16 @@ class _OTPFormState extends State<OTPForm> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
                             borderSide: BorderSide(
-                              color: Config.primaryColor.withOpacity(0.3),
+                              color: Configuration.primaryColor.withOpacity(
+                                0.3,
+                              ),
                               width: 1,
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(15),
                             borderSide: BorderSide(
-                              color: Config.primaryColor,
+                              color: Configuration.primaryColor,
                               width: 2,
                             ),
                           ),
@@ -304,7 +307,7 @@ class _OTPFormState extends State<OTPForm> {
                           } else if (value.isEmpty && index > 0) {
                             _focusNodes[index - 1].requestFocus();
                           }
-    
+
                           // إذا تم ملء جميع الحقول، تحقق تلقائياً
                           if (index == 4 && value.length == 1) {
                             final otp = _getFullOTP();
@@ -325,9 +328,9 @@ class _OTPFormState extends State<OTPForm> {
                   }),
                 ),
               ),
-    
-              Config.spaceSmall,
-    
+
+              Configuration.spaceSmall,
+
               // Resend Timer
               Center(
                 child: Padding(
@@ -338,10 +341,10 @@ class _OTPFormState extends State<OTPForm> {
                           child: Text(
                             "إعادة إرسال رمز التحقق",
                             style: TextStyle(
-                              color: Config.primaryColor,
+                              color: Configuration.primaryColor,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              fontFamily: Config.mainFont,
+                              fontFamily: Configuration.mainFont,
                             ),
                           ),
                         )
@@ -350,14 +353,14 @@ class _OTPFormState extends State<OTPForm> {
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 16,
-                            fontFamily: Config.mainFont,
+                            fontFamily: Configuration.mainFont,
                           ),
                         ),
                 ),
               ),
             ],
           ),
-    
+
           // Bottom Buttons
           Positioned(
             bottom: 20,
@@ -371,7 +374,7 @@ class _OTPFormState extends State<OTPForm> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _verifyOTP,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Config.primaryColor,
+                      backgroundColor: Configuration.primaryColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
@@ -394,14 +397,14 @@ class _OTPFormState extends State<OTPForm> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              fontFamily: Config.mainFont,
+                              fontFamily: Configuration.mainFont,
                             ),
                           ),
                   ),
                 ),
-    
+
                 SizedBox(height: 15),
-    
+
                 // SizedBox(
                 //   width: double.infinity,
                 //   height: 55,

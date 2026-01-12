@@ -7,33 +7,32 @@ class ClassContainer extends StatelessWidget {
     required this.child,
     required this.width,
     required this.height,
+    this.isRounded = false,
   });
   final Widget child;
   final double width;
   final double height;
+  final bool isRounded;
 
   @override
   Widget build(BuildContext context) {
-    const double borderRadius = 20;
+    const double borderRadius = 15;
     return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(borderRadius),
-        topRight: Radius.circular(borderRadius),
-      ),
+      borderRadius: isRounded
+          ? BorderRadius.all(Radius.circular(borderRadius))
+          : const BorderRadius.only(
+              topLeft: Radius.circular(borderRadius),
+              topRight: Radius.circular(borderRadius),
+            ),
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           width: width,
           height: height,
           decoration: BoxDecoration(
-            // **تصحيح: استخدام withOpacity بدلاً من withValues غير الموجودة**
             color: Colors.white.withOpacity(0.2),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(borderRadius),
-              topRight: Radius.circular(borderRadius),
-            ),
+            borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
             border: Border.all(
-              // **تصحيح: استخدام withOpacity بدلاً من withValues غير الموجودة**
               color: Colors.white.withOpacity(0.3),
               width: 1.5,
             ),

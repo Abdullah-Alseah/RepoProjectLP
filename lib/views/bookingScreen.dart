@@ -1,11 +1,22 @@
+import 'package:dio/dio.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:marsa_app/main.dart';
+import 'package:lottie/lottie.dart';
 import 'package:marsa_app/controllers/config.dart';
 import 'package:get/get.dart';
+import 'package:marsa_app/controllers/glassContainer.dart';
+import 'package:marsa_app/controllers/services/api_service.dart';
+import 'package:marsa_app/controllers/services/storage_service.dart';
+import 'package:marsa_app/models/apartment_model.dart';
+import 'package:marsa_app/models/booking_model.dart';
+import 'package:marsa_app/stores/booking_store.dart';
+import 'package:marsa_app/views/apartment_bookings_dialog.dart';
 
 class BookingPage extends StatefulWidget {
-  const BookingPage({super.key});
+  final int apartmentId;
+  final Apartment apartment;
+
+  BookingPage({super.key, required this.apartmentId, required this.apartment});
 
   @override
   State<BookingPage> createState() => _BookingPageState();
@@ -13,31 +24,18 @@ class BookingPage extends StatefulWidget {
 
 class _BookingPageState extends State<BookingPage> {
   DateTime? _selectedDate;
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Config.primaryColor,
-              onPrimary: Colors.white,
-              onSurface: Colors.black,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
+  DateTime? _endDate;
+  late ApiService _apiService;
+  late StorageService _storageService;
+
+  // متغيرات الحالة للتحكم في الواجهة
+  int selectedRentType = 2; // 0: يومي, 1: أسبوعي, 2: شهري
+  int duration = 1;
+  bool _isLoading = false;
+  bool _isCheckingAuth = true;
+  bool _isAuthenticated = false;
+  String? _userRole;
+  final DateFormat _dateFormat = DateFormat('yyyy/MM/dd');
 
   // Show error message
   void _showError(String message) {
@@ -50,57 +48,339 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  // متغيرات الحالة للتحكم في الواجهة
-  int selectedRentType = 2; // 0: يومي, 1: أسبوعي, 2: شهري
-  int duration = 3;
-  String _typeing() {
+  // Show success message
+  void _showSuccess(String message) {
+    Get.snackbar(
+      'نجاح',
+      message,
+      backgroundColor: Colors.green.withAlpha(50),
+      colorText: Colors.black,
+      snackPosition: SnackPosition.TOP,
+    );
+  }
+
+  // حساب تواريخ الإيجار بناءً على النوع
+  void _calculateEndDate() {
+    if (_selectedDate == null) return;
+
     if (selectedRentType == 0) {
-      price = priceDay;
-      if (duration == 2) return "يومين";
-      if (duration > 1 && duration < 11) {
-        return "أيام";
-      } else
-        return "يوم";
+      _endDate = _selectedDate!.add(Duration(days: 1 * duration));
     } else if (selectedRentType == 1) {
-      price = priceWeek;
-      if (duration == 2) return "أسبوعين";
-      if (duration > 1 && duration < 11) {
-        return "أسابيع";
-      } else
-        return "أسبوع";
+      _endDate = _selectedDate!.add(Duration(days: 7 * duration));
     } else {
-      price = priceMonth;
-      if (duration == 2) return "شهرين";
-      if (duration > 1 && duration < 11) {
-        return "أشهر";
-      } else
-        return "شهر";
+      _endDate = _selectedDate!.add(Duration(days: 30 * duration));
     }
   }
 
-  bool isFav = false;
-  int price = 0;
-  int priceDay = 183;
-  int priceWeek = 1200;
-  int priceMonth = 5500;
+  // الحصول على نوع الإيجار كنص
+  String _getRentTypeText() {
+    if (selectedRentType == 0) {
+      if (duration == 2) return "يومين";
+      if (duration > 1 && duration < 11) {
+        return "$duration أيام";
+      }
+      return "$duration يوم";
+    } else if (selectedRentType == 1) {
+      if (duration == 2) return "أسبوعين";
+      if (duration > 1 && duration < 11) {
+        return "$duration أسابيع";
+      }
+      return "$duration أسبوع";
+    } else {
+      if (duration == 2) return "شهرين";
+      if (duration > 1 && duration < 11) {
+        return "$duration أشهر";
+      }
+      return "$duration شهر";
+    }
+  }
 
-  int area = 180;
-  int room = 3;
-  int bath = 2;
-  String address = "الرياض، حي العليا";
-  String nameApartment = "شقة فاخرة في وسط المدينة";
-  // الألوان المستخدمة
-  final Color primaryColor = Config.primaryColor;
-  final Color lightTeal = const Color(0xFFE8F6F5);
+  // حساب السعر بناءً على نوع الإيجار
+  double get price {
+    if (selectedRentType == 0) {
+      return widget.apartment.price / 30;
+    } else if (selectedRentType == 1) {
+      return widget.apartment.price / 4.3;
+    } else {
+      return widget.apartment.price;
+    }
+  }
+
+  // تنسيق السعر
+  String _formatPrice(double price) {
+    try {
+      return '${price.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
+    } catch (_) {
+      return '0';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _apiService = ApiService();
+    _storageService = StorageService();
+    // _selectedDate = DateTime.now().add(const Duration(days: 1));
+    _calculateEndDate();
+    _checkAuthStatus();
+  }
+
+  // التحقق من حالة المصادقة
+  Future<void> _checkAuthStatus() async {
+    try {
+      final isLoggedIn = await _storageService.isLoggedIn();
+      final userData = await _storageService.getUserData();
+
+      setState(() {
+        _isCheckingAuth = false;
+        _isAuthenticated = isLoggedIn;
+        _userRole = userData['role'];
+      });
+
+      if (!_isAuthenticated) {
+        _showError('يرجى تسجيل الدخول أولاً');
+        await Future.delayed(const Duration(seconds: 1));
+        Get.offAllNamed('/login');
+      } else if (_userRole != 'tenant') {
+        _showError('يجب أن تكون مستأجراً لإجراء الحجز');
+        await Future.delayed(const Duration(seconds: 1));
+        Get.back();
+      }
+    } catch (e) {
+      print('❌ خطأ في التحقق من المصادقة: $e');
+      setState(() {
+        _isCheckingAuth = false;
+      });
+      _showError('حدث خطأ في التحقق من الهوية');
+    }
+  }
+
+  // دالة إرسال الحجز إلى API
+  Future<void> _submitBooking() async {
+    // التحقق من المصادقة أولاً
+    if (!_isAuthenticated) {
+      _showError('يرجى تسجيل الدخول أولاً');
+      Get.toNamed('/login');
+      return;
+    }
+
+    if (_userRole != 'tenant') {
+      _showError('المستخدم الحالي ليس مستأجراً');
+      return;
+    }
+
+    if (_selectedDate == null) {
+      _showError('الرجاء اختيار تاريخ البدء');
+      return;
+    }
+
+    if (_endDate == null) {
+      _showError('حدث خطأ في حساب تاريخ الانتهاء');
+      return;
+    }
+
+    // التحقق من أن تاريخ البدء ليس في الماضي
+    final today = DateTime.now();
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    if (_selectedDate!.isBefore(yesterday)) {
+      _showError('لا يمكن اختيار تاريخ في الماضي');
+      return;
+    }
+
+    // حساب السعر الإجمالي
+    final totalPrice = (duration * price).toDouble();
+
+    setState(() => _isLoading = true);
+
+    try {
+      // التحقق مرة أخرى من التوكن قبل الإرسال
+      final token = await _storageService.getToken();
+      if (token == null || token.isEmpty) {
+        _showError('جلسة العمل منتهية، يرجى تسجيل الدخول مرة أخرى');
+        await _storageService.clearUserData();
+        Get.offAllNamed('/login');
+        return;
+      }
+
+      print('📤 إرسال طلب الحجز...');
+      print('🔐 التوكن المستخدم: ${token.substring(0, 20)}...');
+      print('🏢 ID الشقة: ${widget.apartment.id}');
+      print(
+        '📅 تاريخ البدء: ${DateFormat('yyyy-MM-dd').format(_selectedDate!)}',
+      );
+      print('📅 تاريخ الانتهاء: ${DateFormat('yyyy-MM-dd').format(_endDate!)}');
+      print('💰 السعر الإجمالي: $totalPrice');
+
+      final response = await _apiService.dio.post(
+        '/bookings',
+        data: {
+          'apartment_id': widget.apartment.id,
+          'start_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+          'end_date': DateFormat('yyyy-MM-dd').format(_endDate!),
+          'total_price': totalPrice,
+        },
+      );
+
+      print('✅ استجابة الخادم: ${response.statusCode}');
+      print('📋 بيانات الاستجابة: ${response.data}');
+
+      if (response.statusCode == 201) {
+        _showSuccess('تم إرسال طلب الحجز بنجاح! في انتظار موافقة المالك.');
+
+        // الانتظار قليلاً ثم العودة للصفحة السابقة
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (mounted) {
+          Get.back(result: true);
+        }
+      }
+    } on DioException catch (e) {
+      print('❌ خطأ Dio في إرسال الحجز:');
+      print('   📊 Status Code: ${e.response?.statusCode}');
+      print('   📋 Response Data: ${e.response?.data}');
+      print('   🔗 URL: ${e.requestOptions.path}');
+      print('   📝 Method: ${e.requestOptions.method}');
+      print('   📦 Request Data: ${e.requestOptions.data}');
+
+      if (e.response?.statusCode == 401) {
+        _showError('جلسة العمل منتهية، يرجى تسجيل الدخول مرة أخرى');
+        await _storageService.clearUserData();
+        Get.offAllNamed('/login');
+      } else if (e.response?.statusCode == 403) {
+        final message =
+            e.response?.data?['message'] ?? 'غير مصرح لك بإجراء الحجز';
+        _showError('$message (يجب أن تكون مستأجراً معتمداً)');
+      } else if (e.response?.statusCode == 409) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return Dialog(
+              shadowColor: Configuration.primaryColor,
+              backgroundColor: Colors.transparent,
+              child: ClassContainer(
+                width: MediaQuery.of(context).size.width * 0.9,
+                height: MediaQuery.of(context).size.height * 0.7,
+                isRounded: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'تعارض في الحجز',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: Configuration.mainFont,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    Divider(height: 0),
+                    Expanded(
+                      child: ApartmentBookingsScreen(
+                        apartmentId: widget.apartmentId,
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 10, bottom: 10),
+                      decoration: BoxDecoration(
+                        gradient: Configuration.gradientColor.withOpacity(0.7),
+                        borderRadius: BorderRadius.all(Radius.circular(50)),
+                      ),
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.6,
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'حسناً',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: Configuration.mainFont,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      } else if (e.response?.statusCode == 422) {
+        final errors = e.response?.data?['errors'];
+        if (errors != null) {
+          final errorMessage = _parseValidationErrors(errors);
+          _showError('بيانات غير صحيحة: $errorMessage');
+        } else {
+          _showError('بيانات غير صحيحة. الرجاء التحقق من التواريخ');
+        }
+      } else {
+        _showError('فشل في إرسال طلب الحجز. الرجاء المحاولة لاحقاً');
+      }
+    } catch (e) {
+      print('❌ خطأ غير متوقع: $e');
+      _showError('حدث خطأ غير متوقع. الرجاء المحاولة لاحقاً');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  // تحويل أخطاء التحقق إلى نص مقروء
+  String _parseValidationErrors(dynamic errors) {
+    if (errors is Map) {
+      final errorMessages = <String>[];
+      errors.forEach((key, value) {
+        if (value is List) {
+          errorMessages.add('${_translateFieldName(key)}: ${value.join(', ')}');
+        } else {
+          errorMessages.add('${_translateFieldName(key)}: $value');
+        }
+      });
+      return errorMessages.join('، ');
+    }
+    return errors.toString();
+  }
+
+  // ترجمة أسماء الحقول
+  String _translateFieldName(String field) {
+    const translations = {
+      'apartment_id': 'معرف الشقة',
+      'start_date': 'تاريخ البدء',
+      'end_date': 'تاريخ الانتهاء',
+      'total_price': 'السعر الإجمالي',
+    };
+    return translations[field] ?? field;
+  }
 
   @override
   Widget build(BuildContext context) {
+    // عرض شاشة التحميل أثناء التحقق من المصادقة
+    if (_isCheckingAuth) {
+      return _buildAuthCheckingScreen();
+    }
+
+    // عرض شاشة الخطأ إذا لم يكن المستخدم مستأجراً
+    if (!_isAuthenticated || _userRole != 'tenant') {
+      return _buildUnauthorizedScreen();
+    }
+
+    // الواجهة الرئيسية
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         body: SingleChildScrollView(
           child: Stack(
             children: [
+              // ... باقي الكود كما هو (بدون تغيير)
               // 1. الجزء العلوي (Header)
               _buildHeader(),
               // المحتوى الرئيسي
@@ -109,7 +389,7 @@ class _BookingPageState extends State<BookingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SizedBox(height: Config.heightSize * 0.14),
+                    SizedBox(height: Configuration.heightSize * 0.14),
 
                     // 2. بطاقة معلومات العقار
                     _buildPropertyCard(),
@@ -139,139 +419,201 @@ class _BookingPageState extends State<BookingPage> {
                             0,
                             "إيجار يومي",
                             "مثالي للإقامات القصيرة",
-                            "${priceDay} ريال/يوم",
+                            "${_formatPrice(widget.apartment.price / 30)} ل.س",
                           ),
                           const SizedBox(height: 8),
                           _buildRentOption(
                             1,
                             "إيجار أسبوعي",
-                            "خصم 5% على السعر اليومي",
-                            "${priceWeek} ريال/أسبوع",
+                            "خصم على السعر اليومي",
+                            "${_formatPrice(widget.apartment.price / 4.3)} ل.س",
                           ),
                           const SizedBox(height: 8),
                           _buildRentOption(
                             2,
                             "إيجار شهري",
                             "الأفضل للإقامات الطويلة",
-                            "${priceMonth} ريال/شهر",
+                            "${_formatPrice(widget.apartment.price)} ل.س",
                           ),
-                          // 4. المدة وتاريخ البدء
                           const SizedBox(height: 24),
+                          _buildLabel("تاريخ البدء"),
+                          const SizedBox(height: 8),
+                          _buildDatePicker(),
+                          const SizedBox(height: 16),
                           _buildLabel("المدة"),
                           const SizedBox(height: 8),
                           _buildCounter(),
-                          const SizedBox(height: 16),
-                          _buildLabel("تاريخ البدء"),
-                          const SizedBox(height: 8),
-                          // _buildDatePicker(),
-                          InkWell(
-                            onTap: () => _selectDate(context),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 15,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF5F5F5),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today_outlined,
-                                    color: Colors.grey[600],
-                                    size: 20,
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      _selectedDate == null
-                                          ? "يوم / شهر / سنة"
-                                          : "${_selectedDate!.day} / ${_selectedDate!.month} / ${_selectedDate!.year}",
-                                      style: TextStyle(
-                                        color: _selectedDate == null
-                                            ? Colors.grey[500]
-                                            : Colors.black,
-                                        fontFamily: Config.mainFont,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     ),
 
                     const SizedBox(height: 24),
-
-                    // 6. ملخص الحجز (البطاقة الخضراء في الأسفل)
                     _buildSummaryCard(),
-
                     const SizedBox(height: 16),
-
-                    // 7. زر التأكيد
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          if (_selectedDate == null) {
-                            _showError('الرجاء اختيار تاريخ الميلاد');
-                          }
-                          ;
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          shadowColor: Colors.transparent,
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            gradient: Config.gradientColor,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          child: Container(
-                            alignment: Alignment.center,
-                            child: Text(
-                              "تأكيد الحجز",
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: Config.mainFont,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
+                    _buildSubmitButton(),
                     const SizedBox(height: 16),
-                    Center(
-                      child: Text(
-                        "بالضغط على \"تأكيد الحجز\"، أنت توافق على شروط وأحكام الإيجار وسياسة الإلغاء للمنصة",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: Config.mainFont,
-                          color: Colors.grey[500],
-                          fontSize: 11,
-                        ),
-                      ),
-                    ),
+                    _buildTermsText(),
                     const SizedBox(height: 20),
                   ],
                 ),
               ),
-              // _buildHeader(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // شاشة التحقق من المصادقة
+  Widget _buildAuthCheckingScreen() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Lottie.asset(
+              'assets/icons/Sandy Loading.json', // تأكد من صحة المسار
+              width: 80,
+              height: 80,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'جاري التحقق من صلاحية الجلسة...',
+              style: TextStyle(
+                fontFamily: Configuration.mainFont,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // شاشة غير مصرح
+  Widget _buildUnauthorizedScreen() {
+    return Scaffold(
+      appBar: AppBar(title: const Text('غير مصرح')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 80, color: Colors.red.shade400),
+              const SizedBox(height: 20),
+              Text(
+                !_isAuthenticated ? 'غير مسجل الدخول' : 'غير مصرح',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: Configuration.mainFont,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                !_isAuthenticated
+                    ? 'يجب تسجيل الدخول لحجز الشقة'
+                    : 'يجب أن تكون مستأجراً معتمداً لحجز الشقة',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                  fontFamily: Configuration.mainFont,
+                ),
+              ),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () {
+                  if (!_isAuthenticated) {
+                    Get.offAllNamed('/login');
+                  } else {
+                    Get.toNamed('/');
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Configuration.primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 15,
+                  ),
+                ),
+                child: Text(
+                  !_isAuthenticated ? 'تسجيل الدخول' : 'العودة',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // دالة بناء زر الإرسال
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _submitBooking,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: _isLoading
+                ? const LinearGradient(colors: [Colors.grey, Colors.grey])
+                : Configuration.gradientColor,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Container(
+            alignment: Alignment.center,
+            child: _isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    "تأكيد الحجز",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: Configuration.mainFont,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // دالة بناء نص الشروط
+  Widget _buildTermsText() {
+    return Center(
+      child: Text(
+        _selectedDate != null && _endDate != null
+            ? "بالضغط على \"تأكيد الحجز\"، أنت توافق على شروط وأحكام الإيجار وتاريخ ${_dateFormat.format(_endDate!)} ﻷنتهاء الحجز"
+            : "بالضغط على \"تأكيد الحجز\"، أنت توافق على شروط وأحكام الإيجار ",
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontFamily: Configuration.mainFont,
+          color: Colors.grey[500],
+          fontSize: 11,
         ),
       ),
     );
@@ -284,7 +626,7 @@ class _BookingPageState extends State<BookingPage> {
       width: double.infinity,
       padding: const EdgeInsets.only(top: 50, bottom: 30, left: 20, right: 20),
       decoration: BoxDecoration(
-        gradient: Config.gradientColor,
+        gradient: Configuration.gradientColor,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(20),
           bottomRight: Radius.circular(20),
@@ -307,7 +649,11 @@ class _BookingPageState extends State<BookingPage> {
                   onPressed: () {
                     Get.back();
                   },
-                  icon: Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                 ),
               ),
               const SizedBox(width: 15),
@@ -315,7 +661,7 @@ class _BookingPageState extends State<BookingPage> {
                 "حجز الشقة",
                 style: TextStyle(
                   fontSize: 22,
-                  fontFamily: Config.mainFont,
+                  fontFamily: Configuration.mainFont,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -326,7 +672,7 @@ class _BookingPageState extends State<BookingPage> {
           const Text(
             "املأ البيانات التالية لإتمام حجز الشقة",
             style: TextStyle(
-              fontFamily: Config.mainFont,
+              fontFamily: Configuration.mainFont,
               color: Colors.white70,
               fontSize: 14,
             ),
@@ -342,7 +688,7 @@ class _BookingPageState extends State<BookingPage> {
       style: const TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
-        fontFamily: Config.mainFont,
+        fontFamily: Configuration.mainFont,
         color: Colors.black87,
       ),
     );
@@ -354,7 +700,7 @@ class _BookingPageState extends State<BookingPage> {
       style: const TextStyle(
         fontSize: 15,
         fontWeight: FontWeight.bold,
-        fontFamily: Config.mainFont,
+        fontFamily: Configuration.mainFont,
         color: Colors.black87,
       ),
     );
@@ -390,11 +736,11 @@ class _BookingPageState extends State<BookingPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  nameApartment,
+                  widget.apartment.title,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -406,12 +752,14 @@ class _BookingPageState extends State<BookingPage> {
                       color: Colors.grey[600],
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      address,
-                      style: TextStyle(
-                        fontFamily: Config.mainFont,
-                        color: Colors.grey[600],
-                        fontSize: 12,
+                    Expanded(
+                      child: Text(
+                        '${widget.apartment.city}، ${widget.apartment.province}، ${widget.apartment.address}',
+                        style: TextStyle(
+                          fontFamily: Configuration.mainFont,
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -419,11 +767,20 @@ class _BookingPageState extends State<BookingPage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildSpecItem(Icons.aspect_ratio, "$area م²"),
+                    _buildSpecItem(
+                      Icons.aspect_ratio,
+                      "${widget.apartment.rooms * 50} م²",
+                    ),
                     const SizedBox(width: 15),
-                    _buildSpecItem(Icons.bathtub_outlined, "حمام $bath"),
+                    _buildSpecItem(
+                      Icons.groups_sharp,
+                      "${widget.apartment.guests} أشخاص",
+                    ),
                     const SizedBox(width: 15),
-                    _buildSpecItem(Icons.bed_outlined, "غرف $room"),
+                    _buildSpecItem(
+                      Icons.bed_outlined,
+                      "${widget.apartment.rooms} غرف",
+                    ),
                   ],
                 ),
               ],
@@ -437,14 +794,14 @@ class _BookingPageState extends State<BookingPage> {
   Widget _buildSpecItem(IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: Config.primaryColor),
+        Icon(icon, size: 16, color: Configuration.primaryColor),
         const SizedBox(width: 4),
         Text(
           text,
           style: TextStyle(
-            color: Config.primaryColor,
+            color: Configuration.primaryColor,
             fontWeight: FontWeight.bold,
-            fontFamily: Config.mainFont,
+            fontFamily: Configuration.mainFont,
             fontSize: 12,
           ),
         ),
@@ -463,6 +820,7 @@ class _BookingPageState extends State<BookingPage> {
       onTap: () {
         setState(() {
           selectedRentType = index;
+          _calculateEndDate();
         });
       },
       child: Container(
@@ -471,13 +829,13 @@ class _BookingPageState extends State<BookingPage> {
           color: isSelected ? Colors.white : Colors.grey[50],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Config.primaryColor : Colors.transparent,
+            color: isSelected ? Configuration.primaryColor : Colors.transparent,
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Config.primaryColor.withOpacity(0.1),
+                    color: Configuration.primaryColor.withOpacity(0.1),
                     blurRadius: 8,
                   ),
                 ]
@@ -491,9 +849,13 @@ class _BookingPageState extends State<BookingPage> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? Config.primaryColor : Colors.grey[400]!,
+                  color: isSelected
+                      ? Configuration.primaryColor
+                      : Colors.grey[400]!,
                 ),
-                color: isSelected ? Config.primaryColor : Colors.transparent,
+                color: isSelected
+                    ? Configuration.primaryColor
+                    : Colors.transparent,
               ),
               child: isSelected
                   ? const Center(
@@ -509,7 +871,7 @@ class _BookingPageState extends State<BookingPage> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontFamily: Config.mainFont,
+                      fontFamily: Configuration.mainFont,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                       color: isSelected ? Colors.black : Colors.black87,
@@ -518,7 +880,7 @@ class _BookingPageState extends State<BookingPage> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontFamily: Config.mainFont,
+                      fontFamily: Configuration.mainFont,
                       fontSize: 11,
                       color: Colors.grey[600],
                     ),
@@ -529,10 +891,75 @@ class _BookingPageState extends State<BookingPage> {
             Text(
               price,
               style: TextStyle(
-                fontFamily: Config.mainFont,
+                fontFamily: Configuration.mainFont,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: Config.primaryColor,
+                color: Configuration.primaryColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    Future<void> _selectDate(BuildContext context) async {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        // initialDate:
+        //     _selectedDate ?? DateTime.now().add(const Duration(days: 1)),
+        firstDate: DateTime.now(),
+        lastDate: DateTime.now().add(const Duration(days: 365 * 10)),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: ColorScheme.light(
+                primary: Configuration.primaryColor,
+                onPrimary: Colors.white,
+                onSurface: Colors.black,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      if (picked != null && picked != _selectedDate) {
+        setState(() {
+          _selectedDate = picked;
+          _calculateEndDate();
+        });
+      }
+    }
+
+    return InkWell(
+      onTap: () => _selectDate(context),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_outlined,
+              color: Colors.grey[600],
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                _selectedDate == null
+                    ? "يوم / شهر / سنة"
+                    : "${_dateFormat.format(_selectedDate!)}",
+                style: TextStyle(
+                  color: _selectedDate == null
+                      ? Colors.grey[500]
+                      : Colors.black,
+                  fontFamily: Configuration.mainFont,
+                ),
               ),
             ),
           ],
@@ -552,18 +979,26 @@ class _BookingPageState extends State<BookingPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildCounterButton(Icons.remove, () {
-            if (duration > 1) setState(() => duration--);
+            if (duration > 1) {
+              setState(() {
+                duration--;
+                _calculateEndDate();
+              });
+            }
           }),
           Text(
-            "$duration ${_typeing()}",
+            _getRentTypeText(),
             style: const TextStyle(
-              fontFamily: Config.mainFont,
+              fontFamily: Configuration.mainFont,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
           ),
           _buildCounterButton(Icons.add, () {
-            setState(() => duration++);
+            setState(() {
+              duration++;
+              _calculateEndDate();
+            });
           }),
         ],
       ),
@@ -584,64 +1019,28 @@ class _BookingPageState extends State<BookingPage> {
     );
   }
 
-  Widget _buildTextField(String label, String hint, {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: Config.mainFont,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              fontFamily: Config.mainFont,
-              color: Colors.grey[400],
-              fontSize: 14,
-            ),
-            filled: true,
-            fillColor: Colors.grey[100],
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Config.primaryColor, width: 1),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSummaryCard() {
+    final totalPrice = (duration * price).toDouble();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: Config.gradientColor,
+        gradient: Configuration.gradientColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
-          _buildSummaryRow("$duration ${_typeing()}", "", isWhite: true),
+          _buildSummaryRow(_getRentTypeText(), "", isWhite: true),
           const SizedBox(height: 8),
-          _buildSummaryRow("ل.س/شهر ${price}", "السعر", isWhite: true),
+          _buildSummaryRow(
+            "${_formatPrice(price)} ل.س",
+            "سعر ال${selectedRentType == 0
+                ? 'يوم'
+                : selectedRentType == 1
+                ? 'أسبوع'
+                : 'شهر'}",
+            isWhite: true,
+          ),
           const Divider(color: Colors.white24, height: 30),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -651,16 +1050,16 @@ class _BookingPageState extends State<BookingPage> {
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
-                  fontFamily: Config.mainFont,
+                  fontFamily: Configuration.mainFont,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                "${duration * price} ل.س",
+                "${_formatPrice(totalPrice)} ل.س",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
-                  fontFamily: Config.mainFont,
+                  fontFamily: Configuration.mainFont,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -680,7 +1079,7 @@ class _BookingPageState extends State<BookingPage> {
             label,
             style: TextStyle(
               color: isWhite ? Colors.white70 : Colors.grey[600],
-              fontFamily: Config.mainFont,
+              fontFamily: Configuration.mainFont,
               fontSize: 14,
             ),
           ),
@@ -689,7 +1088,7 @@ class _BookingPageState extends State<BookingPage> {
           value,
           style: TextStyle(
             color: isWhite ? Colors.white : Colors.black,
-            fontFamily: Config.mainFont,
+            fontFamily: Configuration.mainFont,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),

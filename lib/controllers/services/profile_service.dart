@@ -25,7 +25,17 @@ class ProfileService {
   }
 
   /// تهيئة متأخرة عند أول استخدام
-  void _lazyInit() {
+  void _lazyInit() {}
+  String? getCurrentUserRoleSync() {
+    try {
+      if (_prefs != null) {
+        return _prefs!.getString('user_role');
+      }
+      return null;
+    } catch (e) {
+      print('❌ خطأ في getCurrentUserRoleSync: $e');
+      return null;
+    }
   }
 
   Future<void> _ensurePrefsInitialized() async {
@@ -373,8 +383,8 @@ class ProfileService {
     }
   }
 
-    //// جلب حالة تسجيل الدخول 
-Future<bool> checkLoginStatus() async {
+  //// جلب حالة تسجيل الدخول
+  Future<bool> checkLoginStatus() async {
     try {
       final token = await getToken();
       return token != null && token.isNotEmpty;
@@ -383,6 +393,7 @@ Future<bool> checkLoginStatus() async {
       return false;
     }
   }
+
   /// جلب الدور
   Future<String?> getRole() async {
     try {

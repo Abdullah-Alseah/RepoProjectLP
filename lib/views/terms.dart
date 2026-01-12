@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 // تأكد من أن هذه المسارات صحيحة في مشروعك
 import 'package:marsa_app/controllers/config.dart';
-import 'package:marsa_app/controllers/openMail.dart';
+import 'package:marsa_app/controllers/sendMail.dart';
 
 class TermsPage extends StatefulWidget {
   const TermsPage({super.key});
@@ -14,7 +14,7 @@ class TermsPage extends StatefulWidget {
 class _TermsPageState extends State<TermsPage> {
   @override
   Widget build(BuildContext context) {
-    Config.init(context);
+    Configuration.init(context);
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 243, 243, 243),
       body: CustomScrollView(
@@ -22,19 +22,19 @@ class _TermsPageState extends State<TermsPage> {
           SliverAppBar(
             automaticallyImplyLeading: false,
             automaticallyImplyActions: false,
-            backgroundColor: Config.primaryColor,
+            backgroundColor: Configuration.primaryColor,
             leading: Container(
               padding: const EdgeInsets.all(10),
               child: CircleAvatar(
                 radius: 10,
                 backgroundColor: Colors.white.withOpacity(
                   0.2,
-                ), // تم تعديل Alpha لأفضل ممارسة
+                ), 
                 child: IconButton(
-                  padding: EdgeInsets.zero, // تحسين تموضع الأيقونة
+                  padding: EdgeInsets.zero, 
                   onPressed: () {
-                    // لا حاجة لـ setState هنا
-                    Get.toNamed("/Register");
+                    
+                    Get.back();
                   },
                   icon: const Icon(
                     Icons.arrow_back,
@@ -58,22 +58,15 @@ class _TermsPageState extends State<TermsPage> {
                     height: 500,
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: Config.gradientColor,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.white,
-                            blurRadius: 30,
-                            offset: Offset(0, 25),
-                          ),
-                        ],
+                        gradient: Configuration.gradientColor,
                       ),
                     ),
                   ),
-                  const Positioned(
-                    top: 60,
-                    right: 80,
+                  Positioned(
+                    top: Configuration.heightSize * 0.1,
+                    right: Configuration.widthSize * 0.12,
                     child: CircleAvatar(
-                      radius: 80,
+                      radius: 70,
                       backgroundColor: Colors.white12,
                     ),
                   ),
@@ -86,15 +79,15 @@ class _TermsPageState extends State<TermsPage> {
                         borderRadius: BorderRadius.all(Radius.circular(15)),
                       ),
                       child: const Icon(
-                        Icons.document_scanner,
+                        Icons.document_scanner_outlined,
                         color: Colors.white,
                         size: 100,
                       ),
                     ),
                   ),
-                  const Positioned(
-                    bottom: 100,
-                    left: 125,
+                  Positioned(
+                    bottom: Configuration.heightSize * 0.15,
+                    left: Configuration.widthSize * 0.15,
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.white12,
@@ -106,7 +99,7 @@ class _TermsPageState extends State<TermsPage> {
                 'الشروط والأحكام',
                 style: TextStyle(
                   color: Colors.white,
-                  fontFamily: Config.mainFont,
+                  fontFamily: Configuration.mainFont,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -175,11 +168,11 @@ class _TermsPageState extends State<TermsPage> {
                     width: double.infinity,
                     height: 250,
                     decoration: BoxDecoration(
-                      gradient: Config.gradientColor,
+                      gradient: Configuration.gradientColor,
                       borderRadius: BorderRadius.all(Radius.circular(20)),
                       boxShadow: [
                         BoxShadow(
-                          color: Config.primaryColor.withOpacity(0.3),
+                          color: Configuration.primaryColor.withOpacity(0.3),
                           blurRadius: 3.5,
                           offset: const Offset(0, 5),
                         ),
@@ -201,7 +194,7 @@ class _TermsPageState extends State<TermsPage> {
                           "هل لديك أسئلة؟",
                           style: TextStyle(
                             color: Colors.white,
-                            fontFamily: Config.mainFont,
+                            fontFamily: Configuration.mainFont,
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
@@ -210,7 +203,7 @@ class _TermsPageState extends State<TermsPage> {
                           "فريق الدعم لمساعدتك على مدار الساعة",
                           style: TextStyle(
                             color: Colors.white,
-                            fontFamily: Config.mainFont,
+                            fontFamily: Configuration.mainFont,
                           ),
                         ),
                         SizedBox(
@@ -233,8 +226,8 @@ class _TermsPageState extends State<TermsPage> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: Config.primaryColor,
-                                fontFamily: Config.mainFont,
+                                color: Configuration.primaryColor,
+                                fontFamily: Configuration.mainFont,
                               ),
                             ),
                           ),
@@ -244,14 +237,14 @@ class _TermsPageState extends State<TermsPage> {
                   ),
                 ),
 
-                Config.spaceMedium,
+                Configuration.spaceMedium,
                 Text(
                   "© 2025 مَرسَى. جميع الحقوق محفوظة",
                   style: TextStyle(
                     fontSize: 15,
                     // fontWeight: FontWeight.bold,
-                    color: Config.primaryColor,
-                    fontFamily: Config.mainFont,
+                    color: Configuration.primaryColor,
+                    fontFamily: Configuration.mainFont,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -285,7 +278,7 @@ class ContentContainer extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Config.primaryColor.withOpacity(0.3),
+                color: Configuration.primaryColor.withOpacity(0.3),
                 blurRadius: 1.5,
                 offset: const Offset(0, 5),
               ),
@@ -303,30 +296,33 @@ class ContentContainer extends StatelessWidget {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: Config.secandryColor.withOpacity(
+                        color: Configuration.secandryColor.withOpacity(
                           0.3,
                         ), // استخدام opacity بدلاً من alpha للقراءة الأسهل
                         borderRadius: BorderRadius.circular(50),
                       ),
-                      child: Icon(icon, color: Config.primaryColor),
+                      child: Icon(icon, color: Configuration.primaryColor),
                     ),
-                  Config.spaceSmall,
+                  Configuration.spaceSmall,
                   Text(
                     mainTitle ?? "",
                     style: TextStyle(
-                      fontFamily: Config.mainFont,
+                      fontFamily: Configuration.mainFont,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              Config.spaceMedium,
+              Configuration.spaceMedium,
               Text(
                 subTitle ?? "",
-                style: TextStyle(fontFamily: Config.mainFont, fontSize: 16),
+                style: TextStyle(
+                  fontFamily: Configuration.mainFont,
+                  fontSize: 16,
+                ),
               ),
-              Config.spaceSmall,
+              Configuration.spaceSmall,
             ],
           ),
         ),

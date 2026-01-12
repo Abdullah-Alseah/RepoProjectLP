@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/state_manager.dart';
+import 'dart:io';
+import 'package:marsa_app/controllers/services/test_connection.dart';
 
-class Config {
-  static const String baseUrl = 'hhttp://192.168.1.15:8000/api';
+class Configuration {
+  // static String baseUrl = "127.0.0.1";
+  // static String baseUrl = "localhost";
+  static String baseUrl = "192.168.1.7";
+  // static String baseUrl = "192.168.57.197";
+
   static const bool debugMode = true;
   static const int apiTimeout = 30; // ثواني
 
@@ -70,10 +76,10 @@ class Config {
 
   static const mainFont = "Tajawal";
 
-  static int pageCurrent = 0; 
+  static int pageCurrent = 0;
 }
 
-class CurrentPage extends GetxController{
+class CurrentPage extends GetxController {
   var pageIndex = 0.obs;
 
   void updatePageIndex(int index) {

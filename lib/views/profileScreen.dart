@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
+import 'package:lottie/lottie.dart';
 import 'package:marsa_app/controllers/services/profile_service.dart';
 import 'package:marsa_app/controllers/services/auth_service.dart';
 import 'package:marsa_app/controllers/config.dart';
+import 'package:marsa_app/controllers/services/test_connection.dart';
 import 'package:marsa_app/views/verificationScreen.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -78,13 +80,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
     setState(() {
       isLoading = true;
+      _refreshFromApi();
       _hasError = false;
       _errorMessage = null;
     });
 
     try {
-      // ثم محاولة تحديث البيانات من API
-      await _refreshFromApi();
       // انتظر قليلاً لضمان تهيئة الخدمات
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -164,22 +165,20 @@ class _ProfilePageState extends State<ProfilePage> {
 
       if (result['success'] == true && result['data'] != null) {
         await _updateUIFromData(result['data']);
-        // isLogged = true;
-        Get.snackbar(
-          'تم التحديث',
-          'تم تحديث البيانات بنجاح',
-          backgroundColor: Colors.green.withAlpha(50),
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2),
-        );
+
+        // Get.snackbar(
+        //   'تم التحديث',
+        //   'تم تحديث البيانات بنجاح',
+        //   backgroundColor: Colors.green.withAlpha(50),
+        //   colorText: Colors.white,
+        //   duration: const Duration(seconds: 2),
+        // );
       } else if (result['statusCode'] == 401) {
         // حالة انتهاء الجلسة
       } else if (result['message'] != null) {
         print('⚠️ تحذير API: ${result['message']}');
-        // isLogged = false;
       }
     } catch (e) {
-      // isLogged = false;
       print('⚠️ تحذير: فشل تحديث البيانات من API: $e');
     }
   }
@@ -403,7 +402,7 @@ class _ProfilePageState extends State<ProfilePage> {
               'الدور: $_userRole',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                fontFamily: Config.mainFont,
+                fontFamily: Configuration.mainFont,
               ),
             ),
             const SizedBox(height: 8),
@@ -414,7 +413,7 @@ class _ProfilePageState extends State<ProfilePage> {
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey,
-                fontFamily: Config.mainFont,
+                fontFamily: Configuration.mainFont,
               ),
             ),
           ],
@@ -424,7 +423,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () => Get.back(),
             child: const Text(
               'حسناً',
-              style: TextStyle(fontFamily: Config.mainFont),
+              style: TextStyle(fontFamily: Configuration.mainFont),
             ),
           ),
         ],
@@ -446,6 +445,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// إعادة تحميل البيانات
   Future<void> _reloadData() async {
+    // ثم محاولة تحديث البيانات من API
+    await _refreshFromApi();
     await _initializeProfileData();
   }
 
@@ -460,7 +461,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Container(
                     height: 300,
                     decoration: BoxDecoration(
-                      gradient: Config.gradientColor,
+                      gradient: Configuration.gradientColor,
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(100),
                         bottomRight: Radius.circular(100),
@@ -647,6 +648,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                         color: Colors.red,
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
+                                        fontFamily: Configuration.mainFont,
                                       ),
                                     ),
                                     style: TextButton.styleFrom(
@@ -666,10 +668,12 @@ class _ProfilePageState extends State<ProfilePage> {
                     Positioned.fill(
                       child: Container(
                         color: Colors.black.withOpacity(0.3),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: Config.primaryColor,
+                        child: Center(
+                          child: Lottie.asset(
+                            'assets/icons/Sandy Loading.json', // تأكد من صحة المسار
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
@@ -746,7 +750,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
-                            color: Config.primaryColor,
+                            color: Configuration.primaryColor,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -789,7 +793,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        _userRole,
+                        _getRole(),
                         style: TextStyle(
                           color: _getRoleColor(),
                           fontSize: 11,
@@ -833,7 +837,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: ElevatedButton(
                     onPressed: isLoading ? null : _saveChanges,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Config.primaryColor,
+                      backgroundColor: Configuration.primaryColor,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -852,7 +856,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         : const Text(
                             "حفظ التغييرات",
                             style: TextStyle(
-                              fontFamily: Config.mainFont,
+                              fontFamily: Configuration.mainFont,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -881,7 +885,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     child: const Text(
                       "إلغاء",
-                      style: TextStyle(fontFamily: Config.mainFont),
+                      style: TextStyle(fontFamily: Configuration.mainFont),
                     ),
                   ),
                 ),
@@ -901,10 +905,21 @@ class _ProfilePageState extends State<ProfilePage> {
         return Colors.blue;
       case 'tenant':
         return Colors.green;
-      case 'manager':
-        return Colors.orange;
       default:
         return Colors.grey;
+    }
+  }
+
+  String _getRole() {
+    switch (_userRole.toLowerCase()) {
+      case 'admin':
+        return "مدير";
+      case 'owner':
+        return "مالِك";
+      case 'tenant':
+        return "مُستأجر";
+      default:
+        return "";
     }
   }
 
@@ -916,11 +931,11 @@ class _ProfilePageState extends State<ProfilePage> {
       // بناء URL كامل للصورة
 
       final fullImageUrl =
-          'http://192.168.1.15:8000/storage/$_currentProfileImage';
+          'http://${Configuration.baseUrl}:8000/storage/$_currentProfileImage';
       print('Loading profile image from URL: $fullImageUrl');
       return NetworkImage(fullImageUrl);
     }
-    return const AssetImage('assets/marsa/logo Marsa.png');
+    return const AssetImage('assets/icons/profile.png');
   }
 
   Widget _buildInfoRow(
@@ -955,7 +970,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           controller: controller,
                           style: const TextStyle(
                             fontSize: 14,
-                            fontFamily: Config.mainFont,
+                            fontFamily: Configuration.mainFont,
                           ),
                           decoration: const InputDecoration(
                             filled: true,
@@ -1005,12 +1020,16 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       title: Text(
         title,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          fontFamily: Configuration.mainFont,
+        ),
       ),
       trailing: isSwitch
           ? Switch(
               value: notificationsEnabled,
-              activeColor: Config.primaryColor,
+              activeColor: Configuration.primaryColor,
               onChanged: (val) {
                 setState(() {
                   notificationsEnabled = val;
@@ -1040,10 +1059,10 @@ class _ProfilePageState extends State<ProfilePage> {
     Get.dialog(
       AlertDialog(
         backgroundColor: Colors.white,
-        shadowColor: Config.primaryColor,
+        shadowColor: Configuration.primaryColor,
         title: const Text(
           'تغيير كلمة المرور',
-          style: TextStyle(fontFamily: Config.mainFont),
+          style: TextStyle(fontFamily: Configuration.mainFont),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1051,10 +1070,10 @@ class _ProfilePageState extends State<ProfilePage> {
             TextField(
               controller: currentPasswordController,
               obscureText: true,
-              style: TextStyle(fontFamily: Config.mainFont),
+              style: TextStyle(fontFamily: Configuration.mainFont),
               decoration: const InputDecoration(
                 labelText: 'كلمة المرور الحالية',
-                labelStyle: TextStyle(fontFamily: Config.mainFont),
+                labelStyle: TextStyle(fontFamily: Configuration.mainFont),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1062,10 +1081,10 @@ class _ProfilePageState extends State<ProfilePage> {
             TextField(
               controller: newPasswordController,
               obscureText: true,
-              style: TextStyle(fontFamily: Config.mainFont),
+              style: TextStyle(fontFamily: Configuration.mainFont),
               decoration: const InputDecoration(
                 labelText: 'كلمة المرور الجديدة',
-                labelStyle: TextStyle(fontFamily: Config.mainFont),
+                labelStyle: TextStyle(fontFamily: Configuration.mainFont),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1073,10 +1092,10 @@ class _ProfilePageState extends State<ProfilePage> {
             TextField(
               controller: confirmPasswordController,
               obscureText: true,
-              style: TextStyle(fontFamily: Config.mainFont),
+              style: TextStyle(fontFamily: Configuration.mainFont),
               decoration: const InputDecoration(
                 labelText: 'تأكيد كلمة المرور',
-                labelStyle: TextStyle(fontFamily: Config.mainFont),
+                labelStyle: TextStyle(fontFamily: Configuration.mainFont),
                 border: OutlineInputBorder(),
               ),
             ),
@@ -1096,12 +1115,12 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () => Get.back(),
             child: const Text(
               'إلغاء',
-              style: TextStyle(fontFamily: Config.mainFont),
+              style: TextStyle(fontFamily: Configuration.mainFont),
             ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Config.primaryColor,
+              backgroundColor: Configuration.primaryColor,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -1154,7 +1173,7 @@ class _ProfilePageState extends State<ProfilePage> {
             },
             child: const Text(
               'تغيير',
-              style: TextStyle(fontFamily: Config.mainFont),
+              style: TextStyle(fontFamily: Configuration.mainFont),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:marsa_app/controllers/services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'package:get/get.dart' show Get;
+import 'package:marsa_app/controllers/services/storage_service.dart';
 
 class AuthService {
   final ApiService _apiService = ApiService();
@@ -215,86 +216,148 @@ class AuthService {
     }
   }
 
+  // دالة login يجب أن ترجع بيانات المستخدم
   Future<Map<String, dynamic>> login({
     required String phone,
     required String password,
   }) async {
     try {
-      isLoggedIn = true;
-      await _initializeDio();
-      print('🔐 Starting login...');
-      print('📱 Phone: $phone');
+      print('📡 إرسال طلب تسجيل الدخول: $phone');
 
-      Response response = await _dio.post(
+      final response = await ApiService().dio.post(
         '/auth/login',
         data: {'phone': phone, 'password': password},
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        ),
       );
 
-      print('✅ Login successful: ${response.statusCode}');
+      print('✅ استجابة تسجيل الدخول: ${response.statusCode}');
+      print('📦 بيانات الاستجابة: ${response.data}');
 
-      // استخراج البيانات
-      final responseData = response.data;
-      String? token;
-      String? role;
-      dynamic userData;
+      if (response.statusCode == 200) {
+        final responseData = response.data;
 
-      if (responseData is Map) {
-        token = responseData['token'] ?? responseData['data']?['token'];
-        role = responseData['role'] ?? responseData['data']?['role'];
-        userData = responseData['user'] ?? responseData['data']?['user'];
-      }
+        // تحقق من هيكل الاستجابة
+        print('🔍 هيكل استجابة API:');
+        print('   - access_token: ${responseData['access_token'] != null}');
+        print('   - token: ${responseData['token'] != null}');
+        print('   - user: ${responseData['user'] != null}');
+        print('   - data: ${responseData['data'] != null}');
 
-      return {
-        'success': true,
-        'data': responseData,
-        'message': responseData['message'] ?? 'تم تسجيل الدخول بنجاح',
-        'statusCode': response.statusCode,
-        'token': token,
-        'role': role,
-        'user': userData,
-      };
-    } on DioException catch (e) {
-      print('❌ Login failed with DioException');
+        // استخراج التوكن من أماكن مختلفة محتملة
+        String? token =
+            responseData['access_token'] ??
+            responseData['token'] ??
+            responseData['data']?['token'];
 
-      // تحليل الخطأ بدقة
-      String errorMessage = 'خطأ في الاتصال';
-      int? statusCode;
+        // استخراج بيانات المستخدم من أماكن مختلفة محتملة
+        Map<String, dynamic>? userData =
+            responseData['user'] ??
+            responseData['data']?['user'] ??
+            responseData['data'];
 
-      if (e.response != null) {
-        statusCode = e.response!.statusCode;
-        final responseData = e.response!.data;
-
-        print('   Status Code: $statusCode');
-        print('   Response: $responseData');
-
-        if (statusCode == 401) {
-          errorMessage = 'رقم الهاتف أو كلمة المرور غير صحيحة';
-        } else if (statusCode == 403) {
-          if (responseData is Map && responseData.containsKey('message')) {
-            errorMessage = responseData['message'];
-          } else {
-            errorMessage = 'الحساب غير مفعل أو في انتظار الموافقة';
-          }
-        } else if (statusCode == 422) {
-          errorMessage = 'بيانات غير صالحة';
+        if (token == null) {
+          print('⚠️ تحذير: لا يوجد توكن في الاستجابة');
         }
+
+        if (userData == null) {
+          print('⚠️ تحذير: لا توجد بيانات مستخدم في الاستجابة');
+
+          // إذا لم تكن هناك بيانات مستخدم، جرب الحصول من auth/me
+          try {
+            print('🔍 محاولة جلب بيانات المستخدم من /auth/me');
+            final meResponse = await ApiService().dio.get('/auth/me');
+            if (meResponse.statusCode == 200) {
+              userData = meResponse.data['data'] ?? meResponse.data;
+              print('✅ تم جلب بيانات المستخدم من /auth/me');
+            }
+          } catch (e) {
+            print('❌ فشل جلب بيانات المستخدم من /auth/me: $e');
+          }
+        }
+
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'تم تسجيل الدخول بنجاح',
+          'token': token,
+          'user': userData,
+          'statusCode': response.statusCode,
+        };
+      } else {
+        return {
+          'success': false,
+          'message': response.data['message'] ?? 'فشل تسجيل الدخول',
+          'statusCode': response.statusCode,
+        };
       }
+    } on DioException catch (e) {
+      print('❌ خطأ في تسجيل الدخول:');
+      print('   - الرسالة: ${e.message}');
+      print('   - الحالة: ${e.response?.statusCode}');
+      print('   - البيانات: ${e.response?.data}');
 
       return {
         'success': false,
-        'message': errorMessage,
-        'statusCode': statusCode,
-        'dioErrorType': e.type.toString(),
+        'message': e.response?.data?['message'] ?? 'حدث خطأ في الاتصال',
+        'statusCode': e.response?.statusCode ?? 500,
       };
     } catch (e) {
-      print('💥 Unexpected login error: $e');
-      return {'success': false, 'message': 'خطأ غير متوقع في تسجيل الدخول'};
+      print('❌ خطأ غير متوقع في تسجيل الدخول: $e');
+      return {
+        'success': false,
+        'message': 'حدث خطأ غير متوقع',
+        'statusCode': 500,
+      };
+    }
+  }
+
+  // جلب بيانات المستخدم الحالي
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    try {
+      print('👤 جلب بيانات المستخدم الحالي...');
+      final response = await ApiService().dio.get('/auth/me');
+
+      if (response.statusCode == 200) {
+        print('✅ بيانات المستخدم:');
+        print(
+          '   - الاسم: ${response.data['data']?['first_name']} ${response.data['data']?['last_name']}',
+        );
+        print('   - ID: ${response.data['data']?['id']}');
+        print('   - الدور: ${response.data['data']?['role']}');
+
+        return {
+          'success': true,
+          'data': response.data['data'] ?? response.data,
+        };
+      } else {
+        return {'success': false, 'message': 'فشل جلب بيانات المستخدم'};
+      }
+    } on DioException catch (e) {
+      print('❌ خطأ في جلب بيانات المستخدم: ${e.message}');
+      return {
+        'success': false,
+        'message': e.response?.data?['message'] ?? 'فشل جلب بيانات المستخدم',
+      };
+    }
+  }
+
+  // تحديث بيانات المستخدم في التخزين
+  Future<void> updateStoredUserData() async {
+    try {
+      final userResult = await getCurrentUser();
+
+      if (userResult['success'] == true && userResult['data'] != null) {
+        final storageService = StorageService();
+        await storageService.saveUserData(userResult['data']);
+
+        print('✅ تم تحديث بيانات المستخدم في التخزين');
+        print('   - ID: ${userResult['data']['id']}');
+        print(
+          '   - الاسم: ${userResult['data']['first_name']} ${userResult['data']['last_name']}',
+        );
+      } else {
+        print('⚠️ لم يتم تحديث بيانات المستخدم: ${userResult['message']}');
+      }
+    } catch (e) {
+      print('❌ خطأ في تحديث بيانات المستخدم: $e');
     }
   }
 

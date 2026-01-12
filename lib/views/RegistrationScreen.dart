@@ -18,7 +18,7 @@ class RegistrationPage extends StatefulWidget {
 
 class _RegistrationPageState extends State<RegistrationPage> {
   // Teal color from the design
-  final Color _primaryColor = Config.primaryColor;
+  final Color _primaryColor = Configuration.primaryColor;
   final Color _fillColor = const Color(0xFFF5F5F5);
 
   // Controllers for text fields
@@ -293,19 +293,19 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 Text(
                   "إنشاء حساب جديد",
                   style: TextStyle(
-                    color: Config.secandryColor,
+                    color: Configuration.secandryColor,
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                   ),
                 ),
                 SizedBox(height: 1),
                 Text(
                   "أنضم ألينا واكتشف أفضل الشقق",
                   style: TextStyle(
-                    color: Config.secandryColor,
+                    color: Configuration.secandryColor,
                     fontSize: 17,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -315,7 +315,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
           // 3. The White Card Container
           Container(
-            height: Config.screenHeight! * 0.8,
+            height: Configuration.screenHeight! * 0.8,
             margin: const EdgeInsets.only(
               top: 170,
               left: 20,
@@ -356,7 +356,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                     "قم برفع صورتك الشخصية",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      fontFamily: Config.mainFont,
+                                      fontFamily: Configuration.mainFont,
                                     ),
                                   ),
                                   Text(
@@ -364,7 +364,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                     style: TextStyle(
                                       color: Colors.grey[500],
                                       fontSize: 12,
-                                      fontFamily: Config.mainFont,
+                                      fontFamily: Configuration.mainFont,
                                     ),
                                   ),
                                 ],
@@ -462,7 +462,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                       color: _selectedDate == null
                                           ? Colors.grey[500]
                                           : Colors.black,
-                                      fontFamily: Config.mainFont,
+                                      fontFamily: Configuration.mainFont,
                                     ),
                                   ),
                                 ),
@@ -513,7 +513,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                       color: _selectedIdDocumentFile != null
                                           ? Colors.black
                                           : Colors.grey[500],
-                                      fontFamily: Config.mainFont,
+                                      fontFamily: Configuration.mainFont,
                                     ),
                                   ),
                                 ),
@@ -533,7 +533,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 12,
-                              fontFamily: Config.mainFont,
+                              fontFamily: Configuration.mainFont,
                             ),
                           ),
                         ),
@@ -552,11 +552,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         Padding(
                           padding: const EdgeInsets.only(top: 8.0, right: 5),
                           child: Text(
-                            "يجب أن تحتوي على 8 أحرف على الأقل",
+                            "يجب أن تحتوي على 8 أحرف ورقم ورمز على الأقل",
                             style: TextStyle(
                               color: Colors.grey[500],
                               fontSize: 12,
-                              fontFamily: Config.mainFont,
+                              fontFamily: Configuration.mainFont,
                             ),
                           ),
                         ),
@@ -638,7 +638,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             const SizedBox(width: 10),
                             Text(
                               "أوافق على ",
-                              style: TextStyle(fontFamily: Config.mainFont),
+                              style: TextStyle(
+                                fontFamily: Configuration.mainFont,
+                              ),
                             ),
                             GestureDetector(
                               onTap: () {
@@ -649,16 +651,18 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                 child: Text(
                                   "الشروط واﻷحكام",
                                   style: TextStyle(
-                                    color: Config.secandryColor,
+                                    color: Configuration.secandryColor,
                                     fontWeight: FontWeight.bold,
-                                    fontFamily: Config.mainFont,
+                                    fontFamily: Configuration.mainFont,
                                   ),
                                 ),
                               ),
                             ),
                             Text(
                               " و ",
-                              style: TextStyle(fontFamily: Config.mainFont),
+                              style: TextStyle(
+                                fontFamily: Configuration.mainFont,
+                              ),
                             ),
                             GestureDetector(
                               onTap: () {
@@ -669,9 +673,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                 child: Text(
                                   "سياسية الخصوصية",
                                   style: TextStyle(
-                                    color: Config.secandryColor,
+                                    color: Configuration.secandryColor,
                                     fontWeight: FontWeight.bold,
-                                    fontFamily: Config.mainFont,
+                                    fontFamily: Configuration.mainFont,
                                   ),
                                 ),
                               ),
@@ -710,12 +714,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
-                                      fontFamily: Config.mainFont,
+                                      fontFamily: Configuration.mainFont,
                                     ),
                                   ),
                           ),
                         ),
-                        Config.spaceBig,
+                        Configuration.spaceBig,
 
                         // Create Account Footer
                         Column(
@@ -728,7 +732,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   "لديك حساب بالفعل؟  ",
                                   style: TextStyle(
                                     color: Colors.grey[600],
-                                    fontFamily: Config.mainFont,
+                                    fontFamily: Configuration.mainFont,
                                   ),
                                 ),
                                 GestureDetector(
@@ -740,9 +744,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                     child: Text(
                                       "تسجيل الدخول",
                                       style: TextStyle(
-                                        color: Config.secandryColor,
+                                        color: Configuration.secandryColor,
                                         fontWeight: FontWeight.bold,
-                                        fontFamily: Config.mainFont,
+                                        fontFamily: Configuration.mainFont,
                                       ),
                                     ),
                                   ),
@@ -772,7 +776,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         style: const TextStyle(
           fontWeight: FontWeight.bold,
           fontSize: 16,
-          fontFamily: Config.mainFont,
+          fontFamily: Configuration.mainFont,
         ),
       ),
     );
@@ -789,13 +793,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
       padding: const EdgeInsets.only(bottom: 20),
       child: TextFormField(
         controller: controller,
-        style: TextStyle(fontFamily: Config.mainFont),
+        style: TextStyle(fontFamily: Configuration.mainFont),
         keyboardType: keyboardType,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(
             color: Colors.grey[500],
-            fontFamily: Config.mainFont,
+            fontFamily: Configuration.mainFont,
           ),
           filled: true,
           fillColor: _fillColor,
@@ -828,13 +832,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
   }) {
     return TextFormField(
       controller: controller,
-      style: TextStyle(fontFamily: Config.mainFont),
+      style: TextStyle(fontFamily: Configuration.mainFont),
       obscureText: obscureText,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(
           color: Colors.grey[500],
-          fontFamily: Config.mainFont,
+          fontFamily: Configuration.mainFont,
         ),
         filled: true,
         fillColor: _fillColor,

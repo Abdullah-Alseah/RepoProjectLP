@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:marsa_app/controllers/config.dart';
-import 'package:marsa_app/controllers/openMail.dart';
+import 'package:marsa_app/controllers/sendMail.dart';
 
 class PrivacyPage extends StatefulWidget {
   const PrivacyPage({super.key});
@@ -13,7 +13,7 @@ class PrivacyPage extends StatefulWidget {
 class _PrivacyPageState extends State<PrivacyPage> {
   @override
   Widget build(BuildContext context) {
-    Config.init(context);
+    Configuration.init(context);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -23,7 +23,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
             SliverAppBar(
               automaticallyImplyLeading: false,
               automaticallyImplyActions: false,
-              backgroundColor: Config.primaryColor,
+              backgroundColor: Configuration.primaryColor,
               actions: [
                 Container(
                   padding: const EdgeInsets.all(10),
@@ -33,7 +33,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       onPressed: () {
-                        Get.toNamed("/Register");
+                        Get.back();
                       },
                       icon: const Icon(
                         Icons.arrow_forward,
@@ -58,13 +58,13 @@ class _PrivacyPageState extends State<PrivacyPage> {
                       height: 500,
                       child: Container(
                         decoration: BoxDecoration(
-                          gradient: Config.gradientColor,
+                          gradient: Configuration.gradientColor,
                         ),
                       ),
                     ),
                     Positioned(
-                      top: Config.heightSize * 0.1,
-                      right: Config.widthSize * 0.12,
+                      top: Configuration.heightSize * 0.1,
+                      right: Configuration.widthSize * 0.12,
                       child: CircleAvatar(
                         radius: 70,
                         backgroundColor: Colors.white12,
@@ -86,8 +86,8 @@ class _PrivacyPageState extends State<PrivacyPage> {
                       ),
                     ),
                     Positioned(
-                      bottom: Config.heightSize * 0.15,
-                      left: Config.widthSize * 0.15,
+                      bottom: Configuration.heightSize * 0.15,
+                      left: Configuration.widthSize * 0.15,
                       child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Colors.white12,
@@ -99,7 +99,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
                   'سياسة الخصوصية',
                   style: TextStyle(
                     color: Colors.white,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -116,7 +116,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
                         "نحن في عقاري نلتزم بحماية خصوصيتك وأمان معلوماتك الشخصية. توضح هذه السياسة كيفية جمع واستخدام وحماية معلوماتك.",
                   ),
 
-                  Config.spaceMedium,
+                  Configuration.spaceMedium,
 
                   // الخط الفاصل
                   Container(
@@ -135,7 +135,7 @@ class _PrivacyPageState extends State<PrivacyPage> {
                         borderRadius: BorderRadius.all(Radius.circular(20)),
                         boxShadow: [
                           BoxShadow(
-                            color: Config.primaryColor.withOpacity(0.3),
+                            color: Configuration.primaryColor.withOpacity(0.3),
                             blurRadius: 3.5,
                             offset: const Offset(0, 5),
                           ),
@@ -150,11 +150,11 @@ class _PrivacyPageState extends State<PrivacyPage> {
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
-                              fontFamily: Config.mainFont,
+                              fontFamily: Configuration.mainFont,
                             ),
                           ),
 
-                          Config.spaceMedium,
+                          Configuration.spaceMedium,
 
                           GridView(
                             shrinkWrap: true,
@@ -251,18 +251,143 @@ class _PrivacyPageState extends State<PrivacyPage> {
                     subTitle:
                         "إذا كان لديك أي أسئلة أو مخاوف بشأن سياسة الخصوصية هذه أو ممارساتنا، يرجى الاتصال بنا عبر البريد الإلكتروني: privacy@marsa.com أو الهاتف: 0000 000 90 963+",
                   ),
-                  Config.spaceBig,
+                  Configuration.spaceBig,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Container(
+                      width: double.infinity,
+                      height: 260,
+                      decoration: BoxDecoration(
+                        gradient: Configuration.gradientColor,
+                        borderRadius: BorderRadius.all(Radius.circular(20)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Configuration.primaryColor.withOpacity(0.3),
+                            blurRadius: 3.5,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Text(
+                            'ميزات الأمان لدينا',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            margin: EdgeInsets.symmetric(horizontal: 20.0),
+                            padding: EdgeInsets.all(10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'تشفير SSL متقدم',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                CircleAvatar(
+                                  backgroundColor: Colors.white12,
+                                  radius: 20,
+                                  child: Icon(
+                                    Icons.lock_outline,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            margin: EdgeInsets.symmetric(horizontal: 20.0),
+                            padding: EdgeInsets.all(10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'حماية البيانات متعددة الطبقات',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                CircleAvatar(
+                                  backgroundColor: Colors.white12,
+                                  radius: 20,
+                                  child: Icon(
+                                    Icons.security_outlined,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: double.infinity,
+                            height: 55,
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            margin: EdgeInsets.symmetric(horizontal: 20.0),
+                            padding: EdgeInsets.all(10),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'عدم مشاركة البيانات مع أطراف ثالثة',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                CircleAvatar(
+                                  backgroundColor: Colors.white12,
+                                  radius: 20,
+                                  child: Icon(
+                                    Icons.visibility_off_outlined,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Configuration.spaceSmall,
                   Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Container(
                       width: double.infinity,
-                      height: 250,
+                      height: 220,
                       decoration: BoxDecoration(
-                        gradient: Config.gradientColor,
+                        color: Colors.white,
                         borderRadius: BorderRadius.all(Radius.circular(20)),
                         boxShadow: [
                           BoxShadow(
-                            color: Config.primaryColor.withOpacity(0.3),
+                            color: Configuration.primaryColor.withOpacity(0.3),
                             blurRadius: 3.5,
                             offset: const Offset(0, 5),
                           ),
@@ -272,19 +397,20 @@ class _PrivacyPageState extends State<PrivacyPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           CircleAvatar(
-                            backgroundColor: Colors.white12,
+                            backgroundColor: Configuration.primaryColor
+                                .withAlpha(50),
                             radius: 30,
                             child: Icon(
                               Icons.mail_outline_outlined,
-                              color: Colors.white,
+                              color: Configuration.primaryColor,
                             ),
                           ),
 
                           Text(
                             "أسئلة حول الخصوصية؟",
                             style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: Config.mainFont,
+                              color: Configuration.primaryColor,
+                              fontFamily: Configuration.mainFont,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
@@ -292,32 +418,42 @@ class _PrivacyPageState extends State<PrivacyPage> {
                           Text(
                             "تواصل مع فريق الخصوصية لدينا",
                             style: TextStyle(
-                              color: Colors.white,
-                              fontFamily: Config.mainFont,
+                              color: Configuration.primaryColor,
+                              fontFamily: Configuration.mainFont,
                             ),
                           ),
                           SizedBox(
                             width: 150,
-                            height: 50,
+                            height: 55,
                             child: ElevatedButton(
                               onPressed: () {
-                                // Handle form submission
                                 openMail();
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: Colors.white,
+                                shadowColor: Colors.transparent,
+                                padding: EdgeInsets.zero,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(15),
                                 ),
-                                elevation: 0,
                               ),
-                              child: const Text(
-                                "تواصل معنا",
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Config.primaryColor,
-                                  fontFamily: Config.mainFont,
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: Configuration.gradientColor,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    "تواصل معنا",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontFamily: Configuration.mainFont,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -327,14 +463,14 @@ class _PrivacyPageState extends State<PrivacyPage> {
                     ),
                   ),
 
-                  Config.spaceMedium,
+                  Configuration.spaceMedium,
                   Text(
                     "© 2025 مَرسَى. جميع الحقوق محفوظة",
                     style: TextStyle(
                       fontSize: 15,
                       // fontWeight: FontWeight.bold,
-                      color: Config.primaryColor,
-                      fontFamily: Config.mainFont,
+                      color: Configuration.primaryColor,
+                      fontFamily: Configuration.mainFont,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -369,7 +505,7 @@ class ContentContainer extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Config.primaryColor.withOpacity(0.3),
+                color: Configuration.primaryColor.withOpacity(0.3),
                 blurRadius: 1.5,
                 offset: const Offset(0, 5),
               ),
@@ -387,28 +523,31 @@ class ContentContainer extends StatelessWidget {
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: Config.secandryColor.withOpacity(0.3),
+                        color: Configuration.secandryColor.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(50),
                       ),
-                      child: Icon(icon, color: Config.primaryColor),
+                      child: Icon(icon, color: Configuration.primaryColor),
                     ),
-                  Config.spaceSmall,
+                  Configuration.spaceSmall,
                   Text(
                     mainTitle ?? "",
                     style: TextStyle(
-                      fontFamily: Config.mainFont,
+                      fontFamily: Configuration.mainFont,
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              Config.spaceMedium,
+              Configuration.spaceMedium,
               Text(
                 subTitle ?? "",
-                style: TextStyle(fontFamily: Config.mainFont, fontSize: 16),
+                style: TextStyle(
+                  fontFamily: Configuration.mainFont,
+                  fontSize: 16,
+                ),
               ),
-              Config.spaceSmall,
+              Configuration.spaceSmall,
             ],
           ),
         ),
@@ -473,7 +612,7 @@ class DataTypeGridItem extends StatelessWidget {
                   title,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontFamily: Config.mainFont,
+                    fontFamily: Configuration.mainFont,
                     color: color,
                   ),
                   maxLines: 1,
@@ -516,7 +655,7 @@ class DataTypeGridItem extends StatelessWidget {
                                 items[index],
                                 style: TextStyle(
                                   height: 1.4,
-                                  fontFamily: Config.mainFont,
+                                  fontFamily: Configuration.mainFont,
                                   color: Colors.black.withOpacity(0.7),
                                 ),
                                 maxLines: 2,

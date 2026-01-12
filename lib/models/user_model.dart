@@ -1,3 +1,4 @@
+// في ملف user_model.dart - تأكد من وجود هذا
 class UserModel {
   int? id;
   String? firstName;
@@ -42,18 +43,18 @@ class UserModel {
       idDocumentUrl: json['id_document_url'],
       isApproved: json['is_approved'],
       phoneVerifiedAt: json['phone_verified_at'] != null
-          ? DateTime.parse(json['phone_verified_at'])
+          ? DateTime.tryParse(json['phone_verified_at'])
           : null,
       dateOfBirth: json['date_of_birth'] != null
-          ? DateTime.parse(json['date_of_birth'])
+          ? DateTime.tryParse(json['date_of_birth'])
           : null,
       mode: json['mode'],
       dir: json['dir'],
       createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
+          ? DateTime.tryParse(json['created_at'])
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
+          ? DateTime.tryParse(json['updated_at'])
           : null,
     );
   }
